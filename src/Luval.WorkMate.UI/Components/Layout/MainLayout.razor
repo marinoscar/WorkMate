@@ -2,7 +2,18 @@
 
 <FluentLayout>
     <FluentHeader>
-        Luval.WorkMate.UI
+        <FluentStack Orientation="Orientation.Horizontal">
+            WorkMate
+            <FluentStack HorizontalAlignment="HorizontalAlignment.End">
+                <AuthorizeView>
+                    <Authorized>
+                        <UserProfileMate 
+                            @rendermode="@InteractiveServer"
+                            SignoutNavigateTo="/api/auth/logout"/>
+                    </Authorized>
+                </AuthorizeView>
+            </FluentStack>
+        </FluentStack>
     </FluentHeader>
     <FluentStack Class="main" Orientation="Orientation.Horizontal" Width="100%">
         <NavMenu />
