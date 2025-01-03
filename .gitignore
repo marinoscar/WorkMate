@@ -398,3 +398,6 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+src/Luval.WorkMate.UI/app.db
+src/Luval.WorkMate.UI/app.db-shm
+src/Luval.WorkMate.UI/app.db-wal
