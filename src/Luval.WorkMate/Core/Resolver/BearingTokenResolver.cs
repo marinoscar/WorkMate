@@ -27,7 +27,7 @@ namespace Luval.WorkMate.Core.Resolver
         /// <exception cref="ArgumentNullException">
         /// Thrown when any of the parameters are null.
         /// </exception>
-        public BearingTokenResolver(AppConnectionService connectionService, IConfiguration configuration, ILogger<AppConnectionResolver> logger)
+        public BearingTokenResolver(AppConnectionService connectionService, IConfiguration configuration, ILogger<BearingTokenResolver> logger)
         {
             _connectionService = connectionService ?? throw new ArgumentNullException(nameof(connectionService));
             _config = configuration ?? throw new ArgumentNullException(nameof(configuration));
