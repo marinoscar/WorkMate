@@ -38,6 +38,7 @@ namespace Luval.WorkMate.Core.PlugIn
 
             try
             {
+                _logger.LogDebug("Creating task category {0}", categoryName);
                 return await _todoService.CreateTaskListAsync(categoryName);
             }
             catch (Exception ex)
@@ -59,6 +60,7 @@ namespace Luval.WorkMate.Core.PlugIn
 
             try
             {
+                _logger.LogDebug("Getting task category by name {0}", categoryName);
                 return (await _todoService.GetTaskLists(string.Format("contains(displayName,'{0}')", categoryName))).SingleOrDefault();
             }
             catch (Exception ex)
@@ -86,6 +88,7 @@ namespace Luval.WorkMate.Core.PlugIn
 
             try
             {
+                _logger.LogDebug("Creating task {0} in category {1}", taskName, categoryId);
                 return await _todoService.CreateTaskAsync(categoryId, taskName, taskNotes, isHighPriority, null, taskDueDate);
             }
             catch (Exception ex)
@@ -101,6 +104,7 @@ namespace Luval.WorkMate.Core.PlugIn
         {
             try
             {
+                _logger.LogDebug("Getting all tasks");
                 return await _todoService.GetAllTasksAsync();
             }
             catch (Exception ex)
@@ -116,6 +120,7 @@ namespace Luval.WorkMate.Core.PlugIn
         {
             try
             {
+                _logger.LogDebug("Getting open tasks");
                 return await _todoService.GetAllTasksAsync(TodoService.OpenTaskFilter);
             }
             catch (Exception ex)
@@ -131,6 +136,7 @@ namespace Luval.WorkMate.Core.PlugIn
         {
             try
             {
+                _logger.LogDebug("Getting completed tasks");
                 return await _todoService.GetAllTasksAsync(TodoService.CompletedTaskFilter);
             }
             catch (Exception ex)
