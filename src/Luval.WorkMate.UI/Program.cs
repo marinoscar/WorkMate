@@ -21,6 +21,13 @@ namespace Luval.WorkMate.UI
             var config = builder.Configuration;
             var connString = "Data Source=app.db";
 
+            //TODO: Add configuration for the chatbot definition to know the purpose and what the chatbot needs to do
+            /* "Bot": {
+             *      "Name": "WorkMate",
+             *      "SystemPrompt": "You are a helpful agent"
+             *  }
+             */
+
             // Add services to the container.
             builder.Services.AddRazorComponents()
                 .AddInteractiveServerComponents();
