@@ -42,9 +42,27 @@ namespace Luval.WorkMate.Core.PlugIn
             return await _todoService.CreateTaskAsync(categoryId, taskName, taskNotes, isHighPriority, null, taskDueDate);
         }
 
+        [KernelFunction("get_all_tasks")]
+        [Description("Gets all the tasks that are in the system")]
         public async Task<IEnumerable<TodoSetDto>> GetAllTasksAsync()
         {
             return await _todoService.GetAllTasksAsync();
         }
+
+        [KernelFunction("get_open_tasks")]
+        [Description("Gets all the open tasks that are in the system")]
+        public async Task<IEnumerable<TodoSetDto>> GetOpenTasksAsync()
+        {
+            return await _todoService.GetAllTasksAsync(TodoService.OpenTaskFilter);
+        }
+
+        [KernelFunction("get_completed_tasks")]
+        [Description("Gets all the completed tasks that are in the system")]
+        public async Task<IEnumerable<TodoSetDto>> GetCompletedTasksAsync()
+        {
+            return await _todoService.GetAllTasksAsync(TodoService.OpenTaskFilter);
+        }
+
+
     }
 }
