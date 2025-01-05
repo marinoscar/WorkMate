@@ -17,12 +17,13 @@ namespace Luval.WorkMate.Infrastructure.Configuration
     {
         public static IServiceCollection AddWorkMateServices(this IServiceCollection s)
         {
-            s.AddScoped<BearingTokenService>();
-            s.AddScoped<TodoService>();
+            s.AddScoped<BearingTokenResolver>();
             s.AddScoped<IAuthenticationProvider, AuthenticationResolver>();
-            s.AddScoped<TodoTaskPlugIn>();
+            s.AddScoped<TodoService>();
             s.AddScoped<WorkMateAgent>();
             s.AddScoped<BotResolver>();
+            s.AddScoped<TodoTaskPlugIn>();
+            s.AddScoped<AppConnectionService>();
             return s;
         }
     }
