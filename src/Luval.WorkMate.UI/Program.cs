@@ -3,8 +3,11 @@ using Luval.AuthMate.Infrastructure.Configuration;
 using Luval.AuthMate.Infrastructure.Data;
 using Luval.AuthMate.Infrastructure.Logging;
 using Luval.AuthMate.Sqlite;
+using Luval.GenAIBotMate.Infrastructure.Configuration;
+using Luval.GenAIBotMate.Infrastructure.Data;
 using Luval.WorkMate.UI.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Luval.WorkMate.UI
 {
@@ -15,6 +18,7 @@ namespace Luval.WorkMate.UI
             var builder = WebApplication.CreateBuilder(args);
 
             var config = builder.Configuration;
+            var connString = "Data Source=app.db";
 
             // Add services to the container.
             builder.Services.AddRazorComponents()
@@ -36,7 +40,7 @@ namespace Luval.WorkMate.UI
                 (s) => {
                     //returns a local instance of Sqlite
                     //replace this with your own implementation of Postgres, MySql, SqlServer, etc
-                    return new SqliteAuthMateContext();
+                    return new SqliteAuthMateContext(connString);
                 });
 
             //Add the AuthMate Google OAuth provider
@@ -49,6 +53,12 @@ namespace Luval.WorkMate.UI
                 // set the login path in the controller and pass the provider name
                 LoginPath = "/api/auth",
             });
+
+            builder.Services.AddGenAIBotServicesDefault(
+                config.GetValue<string>("OpenAIKey"),
+                config.GetValue<string>("Azure:Storage:ConnectionString"),
+                connString
+            );
 
             var app = builder.Build();
 
@@ -77,11 +87,17 @@ namespace Luval.WorkMate.UI
 
             //Inialize the app database using Sqlite
             var contextHelper = new AuthMateContextHelper(
-                new SqliteAuthMateContext(),
+                new SqliteAuthMateContext(connString),
                 new ColorConsoleLogger<AuthMateContextHelper>());
             //Makes sure the db is created, then initializes the db with the owner email
             //and required initial records
             contextHelper.InitializeDbAsync(config["OAuthProviders:Google:OwnerEmail"] ?? "someone@gmail.com")
+                .GetAwaiter()
+                .GetResult();
+
+            // Initialize the database
+            var genContextHelp = new GenAIBotContextHelper(new SqliteChatDbContext(connString), new ColorConsoleLogger<GenAIBotContextHelper>());
+            genContextHelp.InitializeAsync()
                 .GetAwaiter()
                 .GetResult();
 
