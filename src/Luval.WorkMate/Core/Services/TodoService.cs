@@ -25,32 +25,80 @@ namespace Luval.WorkMate.Core.Services
         /// <summary>
         /// Initializes a new instance of the <see cref="TodoService"/> class.
         /// </summary>
-        /// <param name="graphClient">The GraphServiceClient instance.</param>
         /// <param name="authProvider">The authentication provider.</param>
         /// <param name="logger">The logger instance.</param>
         /// <exception cref="ArgumentNullException">Thrown when any of the parameters are null.</exception>
-        public TodoService(GraphServiceClient graphClient, IAuthenticationProvider authProvider, ILogger<TodoService> logger)
+        public TodoService(IAuthenticationProvider authProvider, ILogger<TodoService> logger)
         {
-            _graphClient = graphClient ?? throw new ArgumentNullException(nameof(graphClient));
             _authProvider = authProvider ?? throw new ArgumentNullException(nameof(authProvider));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _graphClient = new GraphServiceClient(_authProvider);
         }
 
+        /// <summary>
+        /// Creates a new task list.
+        /// </summary>
+        /// <param name="name">The name of the task list.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The created task list.</returns>
+        /// <exception cref="ArgumentException">Thrown when the name is null or empty.</exception>
         public async Task<TodoTaskList?> CreateTaskList(string name, CancellationToken cancellationToken = default)
         {
+            if (string.IsNullOrWhiteSpace(name))
+                throw new ArgumentException("Task list name cannot be null or empty.", nameof(name));
+
             var list = new TodoTaskList() { DisplayName = name };
-            return await _graphClient.Me.Todo.Lists.PostAsync(list, cancellationToken: cancellationToken);
+            try
+            {
+                return await _graphClient.Me.Todo.Lists.PostAsync(list, cancellationToken: cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating task list with name {Name}", name);
+                throw;
+            }
         }
 
+        /// <summary>
+        /// Retrieves all task lists.
+        /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A collection of task lists.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the result of the request is null.</exception>
         public async Task<IEnumerable<TodoTaskList>> GetTaskLists(CancellationToken cancellationToken = default)
         {
-            var result = await _graphClient.Me.Todo.Lists.GetAsync(cancellationToken: cancellationToken);
-            if (result == null) throw new InvalidOperationException("The result of the request is null");
-            return result.Value ??= new List<TodoTaskList>();
+            try
+            {
+                var result = await _graphClient.Me.Todo.Lists.GetAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+                if (result == null) throw new InvalidOperationException("The result of the request is null");
+                return result.Value ??= new List<TodoTaskList>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving task lists");
+                throw;
+            }
         }
 
+        /// <summary>
+        /// Creates a new task in the specified task list.
+        /// </summary>
+        /// <param name="listId">The ID of the task list.</param>
+        /// <param name="title">The title of the task.</param>
+        /// <param name="notes">The notes for the task.</param>
+        /// <param name="highImportance">Indicates if the task is of high importance.</param>
+        /// <param name="reminderOn">The reminder date and time.</param>
+        /// <param name="dueDate">The due date and time.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The created task.</returns>
+        /// <exception cref="ArgumentException">Thrown when the listId or title is null or empty.</exception>
         public async Task<TodoTask?> CreateTaskAsync(string listId, string title, string? notes, bool highImportance, DateTime? reminderOn, DateTime? dueDate, CancellationToken cancellationToken = default)
         {
+            if (string.IsNullOrWhiteSpace(listId))
+                throw new ArgumentException("List ID cannot be null or empty.", nameof(listId));
+            if (string.IsNullOrWhiteSpace(title))
+                throw new ArgumentException("Task title cannot be null or empty.", nameof(title));
+
             var task = new TodoTask()
             {
                 Title = title,
@@ -63,31 +111,87 @@ namespace Luval.WorkMate.Core.Services
             };
             if (reminderOn != null) task.ReminderDateTime = new DateTimeTimeZone() { DateTime = reminderOn.Value.ToString("o"), TimeZone = TimeZoneInfo.Local.Id };
             if (dueDate != null) task.DueDateTime = new DateTimeTimeZone() { DateTime = dueDate.Value.ToString("o"), TimeZone = TimeZoneInfo.Local.Id };
-            return await CreateTaskAsync(listId, task, cancellationToken: cancellationToken);
+
+            try
+            {
+                return await CreateTaskAsync(listId, task, cancellationToken: cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating task in list {ListId} with title {Title}", listId, title);
+                throw;
+            }
         }
 
+        /// <summary>
+        /// Creates a new task in the specified task list.
+        /// </summary>
+        /// <param name="listId">The ID of the task list.</param>
+        /// <param name="task">The task to create.</param>
+        /// <param name="linkedResource">The linked resource for the task.</param>
+        /// <param name="checkListItems">The checklist items for the task.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The created task.</returns>
+        /// <exception cref="ArgumentException">Thrown when the listId or task is null or empty.</exception>
         public async Task<TodoTask?> CreateTaskAsync(string listId, TodoTask task, LinkedResource? linkedResource = null, IEnumerable<string>? checkListItems = null, CancellationToken cancellationToken = default)
         {
+            if (string.IsNullOrWhiteSpace(listId))
+                throw new ArgumentException("List ID cannot be null or empty.", nameof(listId));
+            if (task == null)
+                throw new ArgumentException("Task cannot be null.", nameof(task));
+
             if (linkedResource != null)
                 task.LinkedResources = new List<LinkedResource>() { linkedResource };
             if (checkListItems != null)
                 task.ChecklistItems = checkListItems.Select(i => new ChecklistItem() { DisplayName = i }).ToList();
 
-            return await _graphClient.Me.Todo.Lists[listId].Tasks.PostAsync(task, cancellationToken: cancellationToken);
+            try
+            {
+                return await _graphClient.Me.Todo.Lists[listId].Tasks.PostAsync(task, cancellationToken: cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating task in list {ListId}", listId);
+                throw;
+            }
         }
 
+        /// <summary>
+        /// Retrieves all open tasks in the specified task list.
+        /// </summary>
+        /// <param name="listId">The ID of the task list.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A collection of open tasks.</returns>
         public Task<IEnumerable<TodoTask>> GetOpenTasksAsync(string listId, CancellationToken cancellationToken = default)
         {
             return GetTasksAsync(listId, openFilter, cancellationToken);
         }
 
+        /// <summary>
+        /// Retrieves all completed tasks in the specified task list.
+        /// </summary>
+        /// <param name="listId">The ID of the task list.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A collection of completed tasks.</returns>
         public Task<IEnumerable<TodoTask>> GetCompletedTasksAsync(string listId, CancellationToken cancellationToken = default)
         {
             return GetTasksAsync(listId, completedFilter, cancellationToken);
         }
 
+        /// <summary>
+        /// Retrieves tasks in the specified task list based on the filter expression.
+        /// </summary>
+        /// <param name="listId">The ID of the task list.</param>
+        /// <param name="filterExpression">The filter expression.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A collection of tasks.</returns>
+        /// <exception cref="ArgumentException">Thrown when the listId is null or empty.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the result of the request is null.</exception>
         public async Task<IEnumerable<TodoTask>> GetTasksAsync(string listId, string? filterExpression = null, CancellationToken cancellationToken = default)
         {
+            if (string.IsNullOrWhiteSpace(listId))
+                throw new ArgumentException("List ID cannot be null or empty.", nameof(listId));
+
             Action<RequestConfiguration<TasksRequestBuilder.TasksRequestBuilderGetQueryParameters>> filter = default;
 
             if (!string.IsNullOrWhiteSpace(filterExpression))
@@ -95,43 +199,122 @@ namespace Luval.WorkMate.Core.Services
                 filter = (r) => r.QueryParameters.Filter = filterExpression;
             }
 
-            var result = await _graphClient.Me.Todo.Lists[listId].Tasks.GetAsync(requestConfiguration: filter, cancellationToken: cancellationToken);
-
-            if (result == null) throw new InvalidOperationException("The result of the request is null");
-
-            return result.Value ??= new List<TodoTask>();
+            try
+            {
+                var result = await _graphClient.Me.Todo.Lists[listId].Tasks.GetAsync(requestConfiguration: filter, cancellationToken: cancellationToken).ConfigureAwait(false);
+                if (result == null) throw new InvalidOperationException("The result of the request is null");
+                return result.Value ??= new List<TodoTask>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving tasks from list {ListId}", listId);
+                throw;
+            }
         }
 
+        /// <summary>
+        /// Retrieves all tasks across all task lists based on the filter expression.
+        /// </summary>
+        /// <param name="filterExpression">The filter expression.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A collection of task sets.</returns>
         public async Task<IEnumerable<TodoSetDto>> GetAllTasks(string? filterExpression = null, CancellationToken cancellationToken = default)
         {
-            var lists = await GetTaskLists(cancellationToken);
-            var result = new List<TodoSetDto>();
-            foreach (var list in lists)
+            try
             {
-                var tasks = await GetTasksAsync(list.Id, filterExpression, cancellationToken);
-                result.Add(new TodoSetDto() { ListId = list.Id, DisplanyName = list.DisplayName, Tasks = tasks.ToList() });
+                var lists = await GetTaskLists(cancellationToken).ConfigureAwait(false);
+                var result = new List<TodoSetDto>();
+                foreach (var list in lists)
+                {
+                    var tasks = await GetTasksAsync(list.Id, filterExpression, cancellationToken).ConfigureAwait(false);
+                    result.Add(new TodoSetDto() { ListId = list.Id, DisplanyName = list.DisplayName, Tasks = tasks.ToList() });
+                }
+                return result;
             }
-            return result;
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving all tasks");
+                throw;
+            }
         }
 
+        /// <summary>
+        /// Retrieves all open tasks across all task lists.
+        /// </summary>
+        /// <param name="filterExpression">The filter expression.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A collection of task sets.</returns>
         public async Task<IEnumerable<TodoSetDto>> GetAllOpenTasks(string? filterExpression = null, CancellationToken cancellationToken = default)
         {
-            return await GetAllTasks(openFilter, cancellationToken);
+            return await GetAllTasks(openFilter, cancellationToken).ConfigureAwait(false);
         }
 
+        /// <summary>
+        /// Retrieves all completed tasks across all task lists.
+        /// </summary>
+        /// <param name="filterExpression">The filter expression.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A collection of task sets.</returns>
         public async Task<IEnumerable<TodoSetDto>> GetAllCompletedTasks(string? filterExpression = null, CancellationToken cancellationToken = default)
         {
-            return await GetAllTasks(completedFilter, cancellationToken);
+            return await GetAllTasks(completedFilter, cancellationToken).ConfigureAwait(false);
         }
 
+        /// <summary>
+        /// Adds a checklist item to the specified task.
+        /// </summary>
+        /// <param name="listId">The ID of the task list.</param>
+        /// <param name="taskId">The ID of the task.</param>
+        /// <param name="displayName">The display name of the checklist item.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <exception cref="ArgumentException">Thrown when the listId, taskId, or displayName is null or empty.</exception>
         public async Task AddChecklistItemAsync(string listId, string taskId, string displayName, CancellationToken cancellationToken)
         {
-            await _graphClient.Me.Todo.Lists[listId].Tasks[taskId].ChecklistItems.PostAsync(new ChecklistItem() { DisplayName = displayName }, cancellationToken: cancellationToken);
+            if (string.IsNullOrWhiteSpace(listId))
+                throw new ArgumentException("List ID cannot be null or empty.", nameof(listId));
+            if (string.IsNullOrWhiteSpace(taskId))
+                throw new ArgumentException("Task ID cannot be null or empty.", nameof(taskId));
+            if (string.IsNullOrWhiteSpace(displayName))
+                throw new ArgumentException("Display name cannot be null or empty.", nameof(displayName));
+
+            try
+            {
+                await _graphClient.Me.Todo.Lists[listId].Tasks[taskId].ChecklistItems.PostAsync(new ChecklistItem() { DisplayName = displayName }, cancellationToken: cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding checklist item to task {TaskId} in list {ListId}", taskId, listId);
+                throw;
+            }
         }
 
+        /// <summary>
+        /// Adds a linked resource to the specified task.
+        /// </summary>
+        /// <param name="listId">The ID of the task list.</param>
+        /// <param name="taskId">The ID of the task.</param>
+        /// <param name="linkedResource">The linked resource to add.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The added linked resource.</returns>
+        /// <exception cref="ArgumentException">Thrown when the listId, taskId, or linkedResource is null or empty.</exception>
         public async Task<LinkedResource?> AddLinkedResourseAsync(string listId, string taskId, LinkedResource linkedResource, CancellationToken cancellationToken)
         {
-            return await _graphClient.Me.Todo.Lists[listId].Tasks[taskId].LinkedResources.PostAsync(linkedResource, cancellationToken: cancellationToken);
+            if (string.IsNullOrWhiteSpace(listId))
+                throw new ArgumentException("List ID cannot be null or empty.", nameof(listId));
+            if (string.IsNullOrWhiteSpace(taskId))
+                throw new ArgumentException("Task ID cannot be null or empty.", nameof(taskId));
+            if (linkedResource == null)
+                throw new ArgumentException("Linked resource cannot be null.", nameof(linkedResource));
+
+            try
+            {
+                return await _graphClient.Me.Todo.Lists[listId].Tasks[taskId].LinkedResources.PostAsync(linkedResource, cancellationToken: cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding linked resource to task {TaskId} in list {ListId}", taskId, listId);
+                throw;
+            }
         }
     }
 }
