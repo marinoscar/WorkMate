@@ -22,6 +22,7 @@ namespace Luval.WorkMate.Infrastructure.Configuration
             s.AddScoped<IAuthenticationProvider, AuthenticationResolver>();
             s.AddScoped<TodoTaskPlugIn>();
             s.AddScoped<WorkMateAgent>();
+            s.AddScoped<BotResolver>();
             return s;
         }
     }
