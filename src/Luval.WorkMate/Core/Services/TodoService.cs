@@ -20,8 +20,8 @@ namespace Luval.WorkMate.Core.Services
         private readonly GraphServiceClient _graphClient;
         private readonly IAuthenticationProvider _authProvider;
         private readonly ILogger<TodoService> _logger;
-        private const string openFilter = "not (status eq 'completed')";
-        private const string completedFilter = "status eq 'completed'";
+        public const string OpenTaskFilter = "not (status eq 'completed')";
+        public const string CompletedTaskFilter = "status eq 'completed'";
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TodoService"/> class.
@@ -173,7 +173,7 @@ namespace Luval.WorkMate.Core.Services
         /// <returns>A collection of open tasks.</returns>
         public Task<IEnumerable<TodoTask>> GetOpenTasksAsync(string listId, CancellationToken cancellationToken = default)
         {
-            return GetTasksAsync(listId, openFilter, cancellationToken);
+            return GetTasksAsync(listId, OpenTaskFilter, cancellationToken);
         }
 
         /// <summary>
@@ -184,7 +184,7 @@ namespace Luval.WorkMate.Core.Services
         /// <returns>A collection of completed tasks.</returns>
         public Task<IEnumerable<TodoTask>> GetCompletedTasksAsync(string listId, CancellationToken cancellationToken = default)
         {
-            return GetTasksAsync(listId, completedFilter, cancellationToken);
+            return GetTasksAsync(listId, CompletedTaskFilter, cancellationToken);
         }
 
         /// <summary>
@@ -255,7 +255,7 @@ namespace Luval.WorkMate.Core.Services
         /// <returns>A collection of task sets.</returns>
         public async Task<IEnumerable<TodoSetDto>> GetAllOpenTasks(string? filterExpression = null, CancellationToken cancellationToken = default)
         {
-            return await GetAllTasksAsync(openFilter, cancellationToken).ConfigureAwait(false);
+            return await GetAllTasksAsync(OpenTaskFilter, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -266,7 +266,7 @@ namespace Luval.WorkMate.Core.Services
         /// <returns>A collection of task sets.</returns>
         public async Task<IEnumerable<TodoSetDto>> GetAllCompletedTasks(string? filterExpression = null, CancellationToken cancellationToken = default)
         {
-            return await GetAllTasksAsync(completedFilter, cancellationToken).ConfigureAwait(false);
+            return await GetAllTasksAsync(CompletedTaskFilter, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
