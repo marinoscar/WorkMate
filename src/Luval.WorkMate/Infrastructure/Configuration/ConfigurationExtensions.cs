@@ -1,4 +1,6 @@
 ﻿using Luval.AuthMate.Core.Services;
+using Luval.WorkMate.Core.Agent;
+using Luval.WorkMate.Core.PlugIn;
 using Luval.WorkMate.Core.Resolver;
 using Luval.WorkMate.Core.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,6 +20,8 @@ namespace Luval.WorkMate.Infrastructure.Configuration
             s.AddScoped<BearingTokenService>();
             s.AddScoped<TodoService>();
             s.AddScoped<IAuthenticationProvider, AuthenticationResolver>();
+            s.AddScoped<TodoTaskPlugIn>();
+            s.AddScoped<WorkMateAgent>();
             return s;
         }
     }
