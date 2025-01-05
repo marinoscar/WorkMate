@@ -1,5 +1,7 @@
 ﻿@page "/"
 @using Luval.GenAIBotMate.Components
+@using Luval.WorkMate.Core.Agent
+@using Luval.WorkMate.Core.Resolver
 @rendermode InteractiveServer
 
 <PageTitle>Home</PageTitle>
@@ -10,14 +12,16 @@
     <AuthorizeView>
         <NotAuthorized>
             <LoginButtonMate ButtonText=" Google Sign In"
-                             NavigateTo="/api/auth/login"
-                             ProviderName="Google"
-                             IconValue="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size16.LockClosed())" />
+            NavigateTo="/api/auth/login"
+            ProviderName="Google"
+            IconValue="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size16.LockClosed())" />
         </NotAuthorized>
         <Authorized>
             <GenAIBotMateControl @ref="Control"
-                                 ChatTitle="New Chat">
-
+            ChatTitle="New Chat"
+            Service="@Agent"
+            GenAIChatbotName="@Resolver.BotName"
+            >
             </GenAIBotMateControl>
         </Authorized>
     </AuthorizeView>
@@ -26,4 +30,8 @@
 
 @code {
     private GenAIBotMateControl Control { get; set; }
+    [Inject]
+    private WorkMateAgent Agent { get; set; }
+    [Inject]
+    private BotResolver Resolver { get; set; }
 }
