@@ -5,6 +5,7 @@ using Luval.AuthMate.Infrastructure.Logging;
 using Luval.AuthMate.Sqlite;
 using Luval.GenAIBotMate.Infrastructure.Configuration;
 using Luval.GenAIBotMate.Infrastructure.Data;
+using Luval.WorkMate.Infrastructure.Configuration;
 using Luval.WorkMate.UI.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.IdentityModel.Tokens;
@@ -59,6 +60,9 @@ namespace Luval.WorkMate.UI
                 config.GetValue<string>("Azure:Storage:ConnectionString"),
                 connString
             );
+
+            //Add the WorkMate services
+            builder.Services.AddWorkMateServices();
 
             var app = builder.Build();
 
