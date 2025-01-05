@@ -10,6 +10,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Graph.Me.Todo.Lists.Item.Tasks;
+using Microsoft.Graph.Me.Todo.Lists;
 using Luval.WorkMate.Infrastructure.Data;
 
 namespace Luval.WorkMate.Core.Services
@@ -42,7 +43,7 @@ namespace Luval.WorkMate.Core.Services
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The created task list.</returns>
         /// <exception cref="ArgumentException">Thrown when the name is null or empty.</exception>
-        public async Task<TodoTaskList?> CreateTaskList(string name, CancellationToken cancellationToken = default)
+        public async Task<TodoTaskList?> CreateTaskListAsync(string name, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(name))
                 throw new ArgumentException("Task list name cannot be null or empty.", nameof(name));
@@ -62,14 +63,22 @@ namespace Luval.WorkMate.Core.Services
         /// <summary>
         /// Retrieves all task lists.
         /// </summary>
+        /// <param name="filterExpression">The OData filter expression.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>A collection of task lists.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the result of the request is null.</exception>
-        public async Task<IEnumerable<TodoTaskList>> GetTaskLists(CancellationToken cancellationToken = default)
+        public async Task<IEnumerable<TodoTaskList>> GetTaskLists(string? filterExpression = null, CancellationToken cancellationToken = default)
         {
             try
             {
-                var result = await _graphClient.Me.Todo.Lists.GetAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
+                Action<RequestConfiguration<ListsRequestBuilder.ListsRequestBuilderGetQueryParameters>> filter = default;
+
+                if (!string.IsNullOrWhiteSpace(filterExpression))
+                {
+                    filter = (r) => r.QueryParameters.Filter = filterExpression;
+                }
+
+                var result = await _graphClient.Me.Todo.Lists.GetAsync(requestConfiguration: filter, cancellationToken: cancellationToken).ConfigureAwait(false);
                 if (result == null) throw new InvalidOperationException("The result of the request is null");
                 return result.Value ??= new List<TodoTaskList>();
             }
@@ -182,7 +191,7 @@ namespace Luval.WorkMate.Core.Services
         /// Retrieves tasks in the specified task list based on the filter expression.
         /// </summary>
         /// <param name="listId">The ID of the task list.</param>
-        /// <param name="filterExpression">The filter expression.</param>
+        /// <param name="filterExpression">The OData filter expression.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>A collection of tasks.</returns>
         /// <exception cref="ArgumentException">Thrown when the listId is null or empty.</exception>
@@ -218,11 +227,11 @@ namespace Luval.WorkMate.Core.Services
         /// <param name="filterExpression">The filter expression.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>A collection of task sets.</returns>
-        public async Task<IEnumerable<TodoSetDto>> GetAllTasks(string? filterExpression = null, CancellationToken cancellationToken = default)
+        public async Task<IEnumerable<TodoSetDto>> GetAllTasksAsync(string? filterExpression = null, CancellationToken cancellationToken = default)
         {
             try
             {
-                var lists = await GetTaskLists(cancellationToken).ConfigureAwait(false);
+                var lists = await GetTaskLists(null, cancellationToken).ConfigureAwait(false);
                 var result = new List<TodoSetDto>();
                 foreach (var list in lists)
                 {
@@ -246,7 +255,7 @@ namespace Luval.WorkMate.Core.Services
         /// <returns>A collection of task sets.</returns>
         public async Task<IEnumerable<TodoSetDto>> GetAllOpenTasks(string? filterExpression = null, CancellationToken cancellationToken = default)
         {
-            return await GetAllTasks(openFilter, cancellationToken).ConfigureAwait(false);
+            return await GetAllTasksAsync(openFilter, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -257,7 +266,7 @@ namespace Luval.WorkMate.Core.Services
         /// <returns>A collection of task sets.</returns>
         public async Task<IEnumerable<TodoSetDto>> GetAllCompletedTasks(string? filterExpression = null, CancellationToken cancellationToken = default)
         {
-            return await GetAllTasks(completedFilter, cancellationToken).ConfigureAwait(false);
+            return await GetAllTasksAsync(completedFilter, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
