@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Luval.WorkMate", "Luval.Wor
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Luval.WorkMate.UI", "Luval.WorkMate.UI\Luval.WorkMate.UI.csproj", "{D37BBE37-DAE6-4AB1-916E-CE6E7E57B519}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Luval.WorkMate.Components", "Luval.WorkMate.Components\Luval.WorkMate.Components.csproj", "{BDB3D1FE-9C51-4502-95FB-17794424B394}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{D37BBE37-DAE6-4AB1-916E-CE6E7E57B519}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D37BBE37-DAE6-4AB1-916E-CE6E7E57B519}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D37BBE37-DAE6-4AB1-916E-CE6E7E57B519}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BDB3D1FE-9C51-4502-95FB-17794424B394}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BDB3D1FE-9C51-4502-95FB-17794424B394}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BDB3D1FE-9C51-4502-95FB-17794424B394}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BDB3D1FE-9C51-4502-95FB-17794424B394}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
