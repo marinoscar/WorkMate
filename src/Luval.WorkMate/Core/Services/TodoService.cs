@@ -20,7 +20,7 @@ namespace Luval.WorkMate.Core.Services
         private readonly GraphServiceClient _graphClient;
         private readonly IAuthenticationProvider _authProvider;
         private readonly ILogger<TodoService> _logger;
-        public const string OpenTaskFilter = "not (status eq 'completed')";
+        public const string OpenTaskFilter = "status ne 'completed'";
         public const string CompletedTaskFilter = "status eq 'completed'";
 
         /// <summary>

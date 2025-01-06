@@ -16,18 +16,20 @@ namespace Luval.WorkMate.Core.Agent
     {
         private readonly ILogger<GenAIBotService> _logger;
         private readonly TodoTaskPlugIn _plugIn;
-        public WorkMateAgent(IKernelBuilder kernelBuilder, TodoTaskPlugIn plugIn,  IGenAIBotStorageService storageService, IMediaService mediaService, ILoggerFactory loggerFactory) : base(BuildKernel(kernelBuilder, plugIn), storageService, mediaService, loggerFactory.CreateLogger<GenAIBotService>())
+        private static Kernel _kernel;
+        public WorkMateAgent(IKernelBuilder kernelBuilder, TodoTaskPlugIn plugIn,  IGenAIBotStorageService storageService, IMediaService mediaService, ILoggerFactory loggerFactory) : base(GetChatCompletions(kernelBuilder, plugIn), storageService, mediaService, loggerFactory.CreateLogger<GenAIBotService>())
         {
             if (loggerFactory == null) throw new ArgumentNullException(nameof(loggerFactory));
             _logger = loggerFactory.CreateLogger<GenAIBotService>();
+            if(_kernel != null)
+                SetKernel(_kernel);
         }
 
-        private static IChatCompletionService BuildKernel(IKernelBuilder kernelBuilder, TodoTaskPlugIn plugIn)
+        private static IChatCompletionService GetChatCompletions(IKernelBuilder kernelBuilder, TodoTaskPlugIn plugIn)
         {
-
             kernelBuilder.Plugins.AddFromObject(plugIn, "Todo");
             var kernel = kernelBuilder.Build();
-            var service = kernel.GetRequiredService<IChatCompletionService>();
+            _kernel = kernel;
             return kernel.GetRequiredService<IChatCompletionService>();
         }
     }
