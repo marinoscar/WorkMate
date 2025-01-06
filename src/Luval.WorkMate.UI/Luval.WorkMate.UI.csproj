@@ -14,15 +14,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Luval.AuthMate.Blazor" Version="1.1.8" />
-    <PackageReference Include="Luval.AuthMate.Sqlite" Version="1.1.8" />
-    <PackageReference Include="Luval.GenAIBotMate.Components" Version="1.0.13" />
+    <PackageReference Include="Luval.AuthMate.Blazor" Version="1.1.9" />
+    <PackageReference Include="Luval.AuthMate.Sqlite" Version="1.1.9" />
+    <PackageReference Include="Luval.GenAIBotMate.Components" Version="1.0.14" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.0" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.*-*" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.*-*" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Luval.WorkMate.Components\Luval.WorkMate.Components.csproj" />
     <ProjectReference Include="..\Luval.WorkMate\Luval.WorkMate.csproj" />
   </ItemGroup>
 </Project>
