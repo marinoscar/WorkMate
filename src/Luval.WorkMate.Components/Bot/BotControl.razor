@@ -12,6 +12,7 @@
             IconValue="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size16.LockClosed())" />
         </NotAuthorized>
         <Authorized>
+            <BotConnectionStatus></BotConnectionStatus>
             <GenAIBotMateControl @ref="Control"
             ChatTitle="New Chat"
             Service="@Agent"
