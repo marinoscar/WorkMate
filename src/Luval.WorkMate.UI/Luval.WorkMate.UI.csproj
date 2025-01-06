@@ -23,7 +23,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\AuthMate\src\Luval.AuthMate\Luval.AuthMate.csproj" />
     <ProjectReference Include="..\Luval.WorkMate.Components\Luval.WorkMate.Components.csproj" />
     <ProjectReference Include="..\Luval.WorkMate\Luval.WorkMate.csproj" />
   </ItemGroup>
