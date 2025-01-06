@@ -24,6 +24,7 @@ namespace Luval.WorkMate.Infrastructure.Configuration
             s.AddScoped<BotResolver>();
             s.AddScoped<TodoTaskPlugIn>();
             s.AddScoped<AppConnectionService>();
+            s.AddScoped< AgentConnectionService >()
             return s;
         }
     }
