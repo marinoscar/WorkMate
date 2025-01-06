@@ -37,6 +37,27 @@ namespace Luval.WorkMate.Core.Services
         }
 
         /// <summary>
+        /// Tests the connection to Microsoft Graph by retrieving the user's profile.
+        /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>True if the connection is successful; otherwise, false.</returns>
+        /// <exception cref="Exception">Thrown when there is an error testing the connection.</exception>
+        public async Task<bool> TestConnectionAsync(CancellationToken cancellationToken = default)
+        {
+            User profile = default;
+            try
+            {
+                profile = await _graphClient.Me.GetAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error testing connection to Microsoft Graph");
+                return false;
+            }
+            return profile != null;
+        }
+
+        /// <summary>
         /// Creates a new task list.
         /// </summary>
         /// <param name="name">The name of the task list.</param>
