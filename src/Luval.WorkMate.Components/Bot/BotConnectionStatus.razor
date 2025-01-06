@@ -1,6 +1,7 @@
 ﻿@using Luval.WorkMate.Core.Services
 
-@if(!Service.HasConnection()){
+@if (!HasConnection)
+{
     <FluentButton @onclick="OnClickNavigate">
         <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size16.StoreMicrosoft())" />
         Connect with Micrsoft
@@ -14,10 +15,24 @@
     [Inject]
     public required NavigationManager Navigation { get; set; }
 
+    [Inject]
+    public required TodoService TodoService { get; set; }
+
+    public bool HasConnection { get; set; }
+
     public async Task OnClickNavigate()
     {
         var c = await Service.SetupConnectionAsync((config, user, url) => { 
             Navigation.NavigateTo(url);
         }, Navigation.BaseUri);
     }
+
+    override protected async Task OnInitializedAsync()
+    {
+        HasConnection = await Service.HasConnectionAsync();
+        if (HasConnection)
+            HasConnection = await TodoService.TestConnectionAsync();
+
+    }
+
 }
