@@ -41,11 +41,12 @@ namespace Luval.WorkMate.Core.Services
         /// Sets up the connection asynchronously.
         /// </summary>
         /// <param name="refreshRequired">Action to be taken when a refresh is required.</param>
+        /// <param name="baseUrl">The url of the application</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>The established AppConnection or null if a refresh is required.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the refreshRequired parameter is null.</exception>
         /// <exception cref="Exception">Thrown when an error occurs while setting up the connection.</exception>
-        public async Task<AppConnection?> SetupConnectionAsync(Action<OAuthConnectionConfig, AppUser> refreshRequired, CancellationToken cancellationToken = default)
+        public async Task<AppConnection?> SetupConnectionAsync(Action<OAuthConnectionConfig, AppUser, string> refreshRequired, string baseUrl, CancellationToken cancellationToken = default)
         {
             if (refreshRequired == null) throw new ArgumentNullException(nameof(refreshRequired));
 
@@ -54,18 +55,18 @@ namespace Luval.WorkMate.Core.Services
                 var user = _userResolver.GetUser();
                 var config = _oauthConnectionManager.GetConfiguration("Microsoft");
                 var connection = await _appConnectionService.GetConnectionAsync("Microsoft", _userResolver.GetUserEmail(), cancellationToken);
-
+                var connectionUrl = _appConnectionService.CreateAuthorizationConsentUrl(config, baseUrl);
                 if (connection == null) // need to create one
                 {
                     _logger.LogInformation("Connection not found. Refresh required.");
-                    refreshRequired(config, user);
+                    refreshRequired(config, user, connectionUrl);
                     return null;
                 }
 
                 if (connection.HasExpired && string.IsNullOrEmpty(connection.RefreshToken))
                 {
                     _logger.LogInformation("Connection has expired and no refresh token is available. Refresh required.");
-                    refreshRequired(config, user);
+                    refreshRequired(config, user, connectionUrl);
                     return null;
                 }
 
@@ -82,6 +83,29 @@ namespace Luval.WorkMate.Core.Services
                 _logger.LogError(ex, "An error occurred while setting up the connection.");
                 throw;
             }
+        }
+
+        /// <summary>
+        /// Checks if the user has an existing connection.
+        /// </summary>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>True if the user has a connection, otherwise false.</returns>
+        public async Task<bool> HasConnectionAsync(CancellationToken cancellationToken = default)
+        {
+            var user = _userResolver.GetUser();
+            var config = _oauthConnectionManager.GetConfiguration("Microsoft");
+            var connection = await _appConnectionService.GetConnectionAsync("Microsoft", _userResolver.GetUserEmail(), cancellationToken);
+            return connection != null && (!connection.HasExpired || !string.IsNullOrEmpty(connection.RefreshToken));
+        }
+
+        /// <summary>
+        /// Checks if the user has an existing connection.
+        /// </summary>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>True if the user has a connection, otherwise false.</returns>
+        public bool HasConnection()
+        {
+            return HasConnectionAsync().GetAwaiter().GetResult();
         }
     }
 }
