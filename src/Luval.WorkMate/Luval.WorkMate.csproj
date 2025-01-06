@@ -7,10 +7,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Luval.AuthMate.Sqlite" Version="1.1.9" />
+    <PackageReference Include="Luval.AuthMate.Sqlite" Version="1.1.10" />
     <PackageReference Include="Luval.GenAIBotMate" Version="1.0.17" />
     <PackageReference Include="Microsoft.Graph" Version="5.68.0" />
     <PackageReference Include="Microsoft.SemanticKernel.Connectors.OpenAI" Version="1.32.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\AuthMate\src\Luval.AuthMate\Luval.AuthMate.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,23 +1,24 @@
 ﻿@using Luval.GenAIBotMate.Components
 @using Luval.WorkMate.Core.Agent
 @using Luval.WorkMate.Core.Resolver
+@using Luval.AuthMate.Blazor
+
 @rendermode InteractiveServer
 
 <CascadingAuthenticationState>
     <AuthorizeView>
         <NotAuthorized>
             <LoginButtonMate ButtonText=" Google Sign In"
-            NavigateTo="/api/auth/login"
-            ProviderName="Google"
-            IconValue="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size16.LockClosed())" />
+                             NavigateTo="/api/auth/login"
+                             ProviderName="Google"
+                             IconValue="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size16.LockClosed())" />
         </NotAuthorized>
         <Authorized>
             <BotConnectionStatus></BotConnectionStatus>
             <GenAIBotMateControl @ref="Control"
-            ChatTitle="New Chat"
-            Service="@Agent"
-            GenAIChatbotName="@Resolver.BotName"
-            >
+                                 ChatTitle="New Chat"
+                                 Service="@Agent"
+                                 GenAIChatbotName="@Resolver.BotName">
             </GenAIBotMateControl>
         </Authorized>
     </AuthorizeView>
