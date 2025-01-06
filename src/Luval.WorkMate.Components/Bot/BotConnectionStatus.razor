@@ -1,10 +1,23 @@
-﻿<FluentButton @onclick="OnClickNavigate">
-    <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size16.StoreMicrosoft())" />
-    Connect with Micrsoft
-</FluentButton>
+﻿@using Luval.WorkMate.Core.Services
+
+@if(!Service.HasConnection()){
+    <FluentButton @onclick="OnClickNavigate">
+        <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size16.StoreMicrosoft())" />
+        Connect with Micrsoft
+    </FluentButton>
+}
 
 @code {
-    public async Task OnClickNavigate(){
+    [Inject]
+    public required AgentConnectionService Service { get; set; } = default!;
 
+    [Inject]
+    public required NavigationManager Navigation { get; set; }
+
+    public async Task OnClickNavigate()
+    {
+        var c = await Service.SetupConnectionAsync((config, user, url) => { 
+            Navigation.NavigateTo(url);
+        }, Navigation.BaseUri);
     }
 }
