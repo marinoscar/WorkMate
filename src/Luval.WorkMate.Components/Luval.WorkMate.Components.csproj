@@ -14,9 +14,10 @@
   <ItemGroup>
     <PackageReference Include="Luval.AuthMate" Version="1.1.10" />
     <PackageReference Include="Luval.AuthMate.Blazor" Version="1.1.10" />
-    <PackageReference Include="Luval.GenAIBotMate.Components" Version="1.0.14" />
+    <PackageReference Include="Luval.GenAIBotMate.Components" Version="1.0.15" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.11.0" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.11.0" />
+    <PackageReference Include="Microsoft.SemanticKernel.Connectors.OpenAI" Version="1.32.0" />
   </ItemGroup>
 
   <ItemGroup>

@@ -2,6 +2,8 @@
 @using Luval.WorkMate.Core.Agent
 @using Luval.WorkMate.Core.Resolver
 @using Luval.AuthMate.Blazor
+@using Microsoft.SemanticKernel.Connectors.OpenAI
+@using Microsoft.SemanticKernel;
 
 @rendermode InteractiveServer
 
@@ -9,16 +11,17 @@
     <AuthorizeView>
         <NotAuthorized>
             <LoginButtonMate ButtonText=" Google Sign In"
-                             NavigateTo="/api/auth/login"
-                             ProviderName="Google"
-                             IconValue="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size16.LockClosed())" />
+            NavigateTo="/api/auth/login"
+            ProviderName="Google"
+            IconValue="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size16.LockClosed())" />
         </NotAuthorized>
         <Authorized>
             <BotConnectionStatus></BotConnectionStatus>
             <GenAIBotMateControl @ref="Control"
-                                 ChatTitle="New Chat"
-                                 Service="@Agent"
-                                 GenAIChatbotName="@Resolver.BotName">
+            ChatTitle="New Chat"
+            Service="@Agent"
+            PromptSettings="@Settings"
+            GenAIChatbotName="@Resolver.BotName">
             </GenAIBotMateControl>
         </Authorized>
     </AuthorizeView>
@@ -31,4 +34,10 @@
     private WorkMateAgent Agent { get; set; }
     [Inject]
     private BotResolver Resolver { get; set; }
+
+    private OpenAIPromptExecutionSettings Settings { get; set; } = new OpenAIPromptExecutionSettings() { 
+            Temperature = 0.7,
+            FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
+    };
+
 }
