@@ -98,14 +98,5 @@ namespace Luval.WorkMate.Core.Services
             return connection != null && (!connection.HasExpired || !string.IsNullOrEmpty(connection.RefreshToken));
         }
 
-        /// <summary>
-        /// Checks if the user has an existing connection.
-        /// </summary>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        /// <returns>True if the user has a connection, otherwise false.</returns>
-        public bool HasConnection()
-        {
-            return HasConnectionAsync().GetAwaiter().GetResult();
-        }
     }
 }
