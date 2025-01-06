@@ -23,6 +23,7 @@ namespace Luval.WorkMate.Infrastructure.Configuration
             s.AddScoped<WorkMateAgent>();
             s.AddScoped<BotResolver>();
             s.AddScoped<TodoTaskPlugIn>();
+            s.AddScoped<DatePlugIn>();  
             s.AddScoped<AppConnectionService>();
             s.AddScoped<AgentConnectionService>();
             return s;

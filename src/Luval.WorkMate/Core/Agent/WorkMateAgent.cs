@@ -15,9 +15,12 @@ namespace Luval.WorkMate.Core.Agent
     public class WorkMateAgent : GenAIBotService
     {
         private readonly ILogger<GenAIBotService> _logger;
-        private readonly TodoTaskPlugIn _plugIn;
+        private readonly TodoTaskPlugIn _taskPlugIn;
+        private readonly DatePlugIn _datePlugIn;
         private static Kernel _kernel;
-        public WorkMateAgent(IKernelBuilder kernelBuilder, TodoTaskPlugIn plugIn,  IGenAIBotStorageService storageService, IMediaService mediaService, ILoggerFactory loggerFactory) : base(GetChatCompletions(kernelBuilder, plugIn), storageService, mediaService, loggerFactory.CreateLogger<GenAIBotService>())
+        public WorkMateAgent(IKernelBuilder kernelBuilder, TodoTaskPlugIn taskPlugIn, DatePlugIn datePlugIn,  IGenAIBotStorageService storageService, IMediaService mediaService, ILoggerFactory loggerFactory) : 
+                base(GetChatCompletions(kernelBuilder, taskPlugIn, datePlugIn),
+                    storageService, mediaService, loggerFactory.CreateLogger<GenAIBotService>())
         {
             if (loggerFactory == null) throw new ArgumentNullException(nameof(loggerFactory));
             _logger = loggerFactory.CreateLogger<GenAIBotService>();
@@ -25,9 +28,10 @@ namespace Luval.WorkMate.Core.Agent
                 SetKernel(_kernel);
         }
 
-        private static IChatCompletionService GetChatCompletions(IKernelBuilder kernelBuilder, TodoTaskPlugIn plugIn)
+        private static IChatCompletionService GetChatCompletions(IKernelBuilder kernelBuilder, TodoTaskPlugIn plugIn, DatePlugIn datePlugIn)
         {
             kernelBuilder.Plugins.AddFromObject(plugIn, "Todo");
+            kernelBuilder.Plugins.AddFromObject(datePlugIn, "Date");
             var kernel = kernelBuilder.Build();
             _kernel = kernel;
             return kernel.GetRequiredService<IChatCompletionService>();
