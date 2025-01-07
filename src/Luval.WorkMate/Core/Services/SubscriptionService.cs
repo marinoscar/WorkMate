@@ -54,7 +54,7 @@ namespace Luval.WorkMate.Core.Services
             if (!_subscriptionsRetrieved)
                 await LoadAllAsync(cancellationToken);
 
-            foreach (var sub in _subscriptionConfiguration.Subscriptions)
+            foreach (var sub in _subscriptionConfiguration.Items)
             {
                 var subscription = new Subscription
                 {
@@ -106,7 +106,7 @@ namespace Luval.WorkMate.Core.Services
             Logger.LogInformation($"Renewing {subs.Count()} subscriptions");
             foreach (var sub in subs)
             {
-                sub.ExpirationDateTime = DateTimeOffset.UtcNow.AddMinutes(_subscriptionConfiguration.Subscriptions.First(s => s.Resource == sub.Resource).DurationInMinutes);
+                sub.ExpirationDateTime = DateTimeOffset.UtcNow.AddMinutes(_subscriptionConfiguration.Items.First(s => s.Resource == sub.Resource).DurationInMinutes);
                 await GraphClient.Subscriptions[sub.Id].PatchAsync(sub, cancellationToken: cancellationToken);
                 Logger.LogInformation($"Renewed subscription {sub.Id} resource {sub.Resource}");
             }

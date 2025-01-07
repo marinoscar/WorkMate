@@ -23,14 +23,14 @@ namespace Luval.WorkMate.Infrastructure.Configuration
         public SubscriptionConfiguration(IConfiguration configuration)
         {
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-            Subscriptions = default!;
+            Items = default!;
             Initialize();
         }
 
         /// <summary>
         /// Gets the list of subscriptions.
         /// </summary>
-        public List<SubscriptionItem> Subscriptions { get; private set; }
+        public List<SubscriptionItem> Items { get; private set; }
 
         /// <summary>
         /// Gets the the time in minutes to renew the subscription before it expires, default to 60 min befire expiration.
@@ -45,15 +45,19 @@ namespace Luval.WorkMate.Infrastructure.Configuration
         public void Initialize()
         {
             var subSection = _configuration.GetSection("Subscriptions");
+            var subSectionItems = _configuration.GetSection("Subscriptions:Items");
+
             if (!subSection.Exists()) throw new InvalidOperationException("No subscriptions found in configuration");
-            var subs = subSection.Get<List<SubscriptionItem>>();
+            if (!subSectionItems.Exists()) throw new InvalidOperationException("No subscription items found in configuration");
+
+            var subs = subSectionItems.Get<List<SubscriptionItem>>();
             if (subs == null || !subs.Any()) throw new InvalidOperationException("Subscriptions configuration section is not properly defined");
             if (!string.IsNullOrEmpty(subSection["RenewalWindowInMinutes"]))
             {
                 RenewalWindowInMinutes = int.TryParse(subSection["RenewalWindowInMinutes"], out var rw) ? rw : 60;
             }
 
-            Subscriptions = subs;
+            Items = subs;
         }
     }
 
