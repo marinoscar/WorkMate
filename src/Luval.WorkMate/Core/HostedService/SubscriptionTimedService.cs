@@ -31,6 +31,7 @@ namespace Luval.WorkMate.Core.HostedService
                         new ServiceUserAuthenticationResolver(ServiceScope.ServiceProvider),
                         ServiceScope.ServiceProvider.GetRequiredService<ILoggerFactory>());
 
+            Logger.LogDebug("Running the subscription service");
             await _service.RunServiceAsync(cancellationToken);
         }
     }

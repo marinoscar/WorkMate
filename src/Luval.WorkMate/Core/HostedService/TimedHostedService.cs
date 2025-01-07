@@ -12,7 +12,6 @@ namespace Luval.WorkMate.Core.HostedService
     public abstract class TimedHostedService : IHostedService, IDisposable
     {
         private ulong executionCount = 0;
-        private ILogger _logger = default!;
         private IConfiguration _configuration = default!;
         private Timer? _timer = null;
         private string _category = default!;
@@ -34,7 +33,8 @@ namespace Luval.WorkMate.Core.HostedService
 
             if (loggerFactory == null) throw new ArgumentNullException(nameof(loggerFactory));
             _category = GetType().Name;
-            _logger = loggerFactory.CreateLogger(GetType().Name);
+            Logger = loggerFactory.CreateLogger(GetType().Name);
+            Logger.LogDebug($"{GetType().Name} initialized.");
         }
 
         /// <summary>
@@ -42,7 +42,15 @@ namespace Luval.WorkMate.Core.HostedService
         /// </summary>
         protected virtual IServiceProvider ServiceProvider { get; private set; }
 
+        /// <summary>
+        /// Gets the service scope instance.
+        /// </summary>
         protected virtual IServiceScope ServiceScope { get; private set; } = default!;
+
+        /// <summary>
+        /// Gets the logger instance.
+        /// </summary>
+        protected virtual ILogger Logger { get; private set; } = default!;
 
 
         /// <summary>
@@ -56,26 +64,48 @@ namespace Luval.WorkMate.Core.HostedService
         /// </remarks>
         /// <returns>The interval as a <see cref="TimeSpan"/>.</returns>
         /// <exception cref="ArgumentException">Thrown when the configuration section or interval value is not found.</exception>
-        protected virtual TimeSpan GetTimeSpan()
+        protected virtual TimeSpan GetInterval()
         {
-            _logger.LogInformation("Retrieving interval for hosted service type: {Category}", _category);
+            return GetTimeSpan("Interval", TimeSpan.FromMinutes(30));
+        }
+
+        /// <summary>
+        /// Retrieves the startup delay time span for the hosted service from the configuration.
+        /// </summary>
+        /// <remarks>
+        /// This method reads the configuration section specific to the hosted service category
+        /// and retrieves the startup delay value. The interval value is expected to be a string
+        /// that can be parsed into a <see cref="TimeSpan"/>. If the configuration section or
+        /// the startup delay value is not found, an <see cref="ArgumentException"/> is thrown.
+        /// </remarks>
+        /// <returns>The interval as a <see cref="TimeSpan"/>.</returns>
+        /// <exception cref="ArgumentException">Thrown when the configuration section or interval value is not found.</exception>
+        protected virtual TimeSpan GetDelay()
+        {
+            return GetTimeSpan("StartupDelay", TimeSpan.FromMinutes(30));
+        }
+
+        protected virtual TimeSpan GetTimeSpan(string item, TimeSpan defaultValue)
+        {
+            Logger.LogInformation($"Retrieving {item} for hosted service type: {_category}");
 
             var section = _configuration.GetSection($"HostedService:{_category}");
             if (!section.GetChildren().Any())
             {
-                _logger.LogError("No configuration found in HostedService section for {Category}", _category);
+                Logger.LogError("No configuration found in HostedService section for {Category}", _category);
                 throw new ArgumentException($"No configuration found in HostedService section for {_category}");
             }
 
-            var interval = section.GetValue<string>("interval");
-            if (string.IsNullOrWhiteSpace(interval))
+            var timeSpan = section.GetValue<string>(item);
+            if (string.IsNullOrWhiteSpace(timeSpan))
             {
-                _logger.LogError("No interval found in HostedService section for {Category}", _category);
-                throw new ArgumentException($"No interval found in HostedService section for {_category}");
+                Logger.LogError($"No {timeSpan} found in HostedService section for {_category}");
+                throw new ArgumentException($"No {item} found in HostedService section for {_category}");
             }
 
-            _logger.LogInformation("Interval retrieved: {Interval}", interval);
-            return TimeSpan.Parse(interval);
+            Logger.LogInformation($"Timesap retrieved for {item}: {timeSpan}");
+
+            return TimeSpan.TryParse(timeSpan, out var result) ? result : defaultValue;
         }
 
         /// <summary>
@@ -87,9 +117,11 @@ namespace Luval.WorkMate.Core.HostedService
         {
             ServiceScope = ServiceProvider.CreateScope();
             Initialize();
-            _logger.LogInformation("Timed Hosted Service running.");
+            Logger.LogInformation($"{GetType().Name}  is running.");
 
-            _timer = new Timer(TimerCallback, stoppingToken, TimeSpan.FromSeconds(30), GetTimeSpan());
+            var delay = GetDelay();
+            var interval = GetInterval();
+            _timer = new Timer(TimerCallback, stoppingToken, delay, interval);
             await OnTickAsync(stoppingToken);
         }
 
@@ -102,8 +134,9 @@ namespace Luval.WorkMate.Core.HostedService
         {
             var count = Interlocked.Increment(ref executionCount);
 
-            _logger.LogDebug("Timed Hosted Service is working. Count: {Count}", count);
             await DoWorkAsync(stoppingToken);
+
+            Logger.LogDebug($"{GetType().Name} is working. Count: {count} next run in {GetInterval()}");
 
             if (count > ulong.MaxValue - 100) count = 0;
         }
@@ -116,7 +149,7 @@ namespace Luval.WorkMate.Core.HostedService
 
         public Task StopAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("Timed Hosted Service is stopping.");
+            Logger.LogInformation("Timed Hosted Service is stopping.");
 
             _timer?.Dispose();
 
