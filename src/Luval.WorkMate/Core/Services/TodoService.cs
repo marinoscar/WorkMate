@@ -15,47 +15,21 @@ using Luval.WorkMate.Infrastructure.Data;
 
 namespace Luval.WorkMate.Core.Services
 {
-    public class TodoService
+    public class TodoService : MicrosoftGraphServiceBase
     {
-        private readonly GraphServiceClient _graphClient;
-        private readonly IAuthenticationProvider _authProvider;
-        private readonly ILogger<TodoService> _logger;
         public const string OpenTaskFilter = "status ne 'completed'";
         public const string CompletedTaskFilter = "status eq 'completed'";
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TodoService"/> class.
         /// </summary>
-        /// <param name="authProvider">The authentication provider.</param>
-        /// <param name="logger">The logger instance.</param>
-        /// <exception cref="ArgumentNullException">Thrown when any of the parameters are null.</exception>
-        public TodoService(IAuthenticationProvider authProvider, ILogger<TodoService> logger)
+        /// <param name="authProvider">The authentication provider for Microsoft Graph.</param>
+        /// <param name="loggerFactory">The logger factory to create loggers.</param>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="authProvider"/> or <paramref name="loggerFactory"/> is null.</exception>
+        public TodoService(IAuthenticationProvider authProvider, ILoggerFactory loggerFactory) : base(authProvider, loggerFactory)
         {
-            _authProvider = authProvider ?? throw new ArgumentNullException(nameof(authProvider));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _graphClient = new GraphServiceClient(_authProvider);
         }
 
-        /// <summary>
-        /// Tests the connection to Microsoft Graph by retrieving the user's profile.
-        /// </summary>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns>True if the connection is successful; otherwise, false.</returns>
-        /// <exception cref="Exception">Thrown when there is an error testing the connection.</exception>
-        public async Task<bool> TestConnectionAsync(CancellationToken cancellationToken = default)
-        {
-            User profile = default;
-            try
-            {
-                profile = await _graphClient.Me.GetAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error testing connection to Microsoft Graph");
-                return false;
-            }
-            return profile != null;
-        }
 
         /// <summary>
         /// Creates a new task list.
@@ -72,11 +46,11 @@ namespace Luval.WorkMate.Core.Services
             var list = new TodoTaskList() { DisplayName = name };
             try
             {
-                return await _graphClient.Me.Todo.Lists.PostAsync(list, cancellationToken: cancellationToken).ConfigureAwait(false);
+                return await GraphClient.Me.Todo.Lists.PostAsync(list, cancellationToken: cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating task list with name {Name}", name);
+                Logger.LogError(ex, "Error creating task list with name {Name}", name);
                 throw;
             }
         }
@@ -99,13 +73,13 @@ namespace Luval.WorkMate.Core.Services
                     filter = (r) => r.QueryParameters.Filter = filterExpression;
                 }
 
-                var result = await _graphClient.Me.Todo.Lists.GetAsync(requestConfiguration: filter, cancellationToken: cancellationToken).ConfigureAwait(false);
+                var result = await GraphClient.Me.Todo.Lists.GetAsync(requestConfiguration: filter, cancellationToken: cancellationToken).ConfigureAwait(false);
                 if (result == null) throw new InvalidOperationException("The result of the request is null");
                 return result.Value ??= new List<TodoTaskList>();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving task lists");
+                Logger.LogError(ex, "Error retrieving task lists");
                 throw;
             }
         }
@@ -148,7 +122,7 @@ namespace Luval.WorkMate.Core.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating task in list {ListId} with title {Title}", listId, title);
+                Logger.LogError(ex, "Error creating task in list {ListId} with title {Title}", listId, title);
                 throw;
             }
         }
@@ -177,11 +151,11 @@ namespace Luval.WorkMate.Core.Services
 
             try
             {
-                return await _graphClient.Me.Todo.Lists[listId].Tasks.PostAsync(task, cancellationToken: cancellationToken).ConfigureAwait(false);
+                return await GraphClient.Me.Todo.Lists[listId].Tasks.PostAsync(task, cancellationToken: cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating task in list {ListId}", listId);
+                Logger.LogError(ex, "Error creating task in list {ListId}", listId);
                 throw;
             }
         }
@@ -231,13 +205,13 @@ namespace Luval.WorkMate.Core.Services
 
             try
             {
-                var result = await _graphClient.Me.Todo.Lists[listId].Tasks.GetAsync(requestConfiguration: filter, cancellationToken: cancellationToken).ConfigureAwait(false);
+                var result = await GraphClient.Me.Todo.Lists[listId].Tasks.GetAsync(requestConfiguration: filter, cancellationToken: cancellationToken).ConfigureAwait(false);
                 if (result == null) throw new InvalidOperationException("The result of the request is null");
                 return result.Value ??= new List<TodoTask>();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving tasks from list {ListId}", listId);
+                Logger.LogError(ex, "Error retrieving tasks from list {ListId}", listId);
                 throw;
             }
         }
@@ -263,7 +237,7 @@ namespace Luval.WorkMate.Core.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving all tasks");
+                Logger.LogError(ex, "Error retrieving all tasks");
                 throw;
             }
         }
@@ -309,11 +283,11 @@ namespace Luval.WorkMate.Core.Services
 
             try
             {
-                await _graphClient.Me.Todo.Lists[listId].Tasks[taskId].ChecklistItems.PostAsync(new ChecklistItem() { DisplayName = displayName }, cancellationToken: cancellationToken).ConfigureAwait(false);
+                await GraphClient.Me.Todo.Lists[listId].Tasks[taskId].ChecklistItems.PostAsync(new ChecklistItem() { DisplayName = displayName }, cancellationToken: cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error adding checklist item to task {TaskId} in list {ListId}", taskId, listId);
+                Logger.LogError(ex, "Error adding checklist item to task {TaskId} in list {ListId}", taskId, listId);
                 throw;
             }
         }
@@ -338,11 +312,11 @@ namespace Luval.WorkMate.Core.Services
 
             try
             {
-                return await _graphClient.Me.Todo.Lists[listId].Tasks[taskId].LinkedResources.PostAsync(linkedResource, cancellationToken: cancellationToken).ConfigureAwait(false);
+                return await GraphClient.Me.Todo.Lists[listId].Tasks[taskId].LinkedResources.PostAsync(linkedResource, cancellationToken: cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error adding linked resource to task {TaskId} in list {ListId}", taskId, listId);
+                Logger.LogError(ex, "Error adding linked resource to task {TaskId} in list {ListId}", taskId, listId);
                 throw;
             }
         }

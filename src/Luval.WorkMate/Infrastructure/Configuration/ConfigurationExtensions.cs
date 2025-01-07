@@ -26,6 +26,7 @@ namespace Luval.WorkMate.Infrastructure.Configuration
             s.AddScoped<DatePlugIn>();  
             s.AddScoped<AppConnectionService>();
             s.AddScoped<AgentConnectionService>();
+            s.AddScoped<EmailService>();
             return s;
         }
     }
