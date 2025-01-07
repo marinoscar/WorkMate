@@ -20,6 +20,7 @@ namespace Luval.WorkMate.Core.Services
         private readonly IConfiguration _configuration;
         private readonly SubscriptionConfiguration _subscriptionConfiguration;
         private static bool _subscriptionsRetrieved = false;
+        private static bool _intialized = false;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SubscriptionService"/> class.
@@ -38,6 +39,30 @@ namespace Luval.WorkMate.Core.Services
         /// Gets the list of subscriptions and keeps them in memory during the application lifecycle.
         /// </summary>
         public static Dictionary<string, Subscription> Subscriptions { get; private set; } = new Dictionary<string, Subscription>();
+
+        /// <summary>
+        /// Runs the subscription service asynchronously.
+        /// </summary>
+        /// <param name="cancellationToken">The cancellation token to cancel the operation.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        /// <remarks>
+        /// This method initializes the subscription service if it has not been initialized yet by creating subscriptions.
+        /// If the service is already initialized, it checks for subscription renewals and renews them if necessary.
+        /// </remarks>
+        public async Task RunServiceAsync(CancellationToken cancellationToken)
+        {
+            if (!_intialized)
+            {
+                //create the subscriptions for the first time
+                await CreateSubscriptionsAsync(cancellationToken);
+                _intialized = true;
+            }
+            else
+            {
+                //check for renewals
+                await RenewSubscriptionsAsync(cancellationToken);
+            }
+        }
 
         /// <summary>
         /// Creates subscriptions asynchronously based on the configuration.
