@@ -1,5 +1,6 @@
 ﻿using Luval.AuthMate.Core.Services;
 using Luval.WorkMate.Core.Agent;
+using Luval.WorkMate.Core.HostedService;
 using Luval.WorkMate.Core.PlugIn;
 using Luval.WorkMate.Core.Resolver;
 using Luval.WorkMate.Core.Services;
@@ -28,6 +29,8 @@ namespace Luval.WorkMate.Infrastructure.Configuration
             s.AddScoped<AgentConnectionService>();
             s.AddScoped<EmailService>();
             s.AddSingleton<SubscriptionService>();
+
+            s.AddHostedService<SubscriptionTimedService>();
             return s;
         }
     }
