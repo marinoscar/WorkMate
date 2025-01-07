@@ -11,13 +11,16 @@ namespace Luval.WorkMate.Core.HostedService
 {
     public class SubscriptionTimedService : TimedHostedService
     {
+        private readonly SubscriptionService _service;
+
         public SubscriptionTimedService(SubscriptionService service, IConfiguration configuration, ILoggerFactory loggerFactory) : base(configuration, loggerFactory)
         {
+            _service = service ?? throw new ArgumentNullException(nameof(service));
         }
 
-        public override Task DoWorkAsync(CancellationToken cancellationToken)
+        public override async Task DoWorkAsync(CancellationToken cancellationToken)
         {
-            throw new NotImplementedException();
+            await _service.RunServiceAsync(cancellationToken);
         }
     }
 }
