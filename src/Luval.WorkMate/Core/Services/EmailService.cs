@@ -69,6 +69,37 @@ namespace Luval.WorkMate.Core.Services
         }
 
         /// <summary>
+        /// Retrieves a specific email from the user's mailbox by email ID.
+        /// </summary>
+        /// <param name="emailId">The unique identifier of the email message.</param>
+        /// <param name="cancellationToken">The cancellation token to cancel the operation.</param>
+        /// <returns>A task that represents the asynchronous operation. The task result contains the <see cref="Message"/> object.</returns>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="emailId"/> is null or empty.</exception>
+        /// <exception cref="ServiceException">Thrown when there is an error retrieving the email from Microsoft Graph.</exception>
+        /// <exception cref="Exception">Thrown when an unexpected error occurs.</exception>
+        public async Task<Message> GetEmailAsync(string emailId, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(emailId))
+            {
+                throw new ArgumentException("Email ID cannot be null or empty.", nameof(emailId));
+            }
+            try
+            {
+                return await GraphClient.Me.Messages[emailId].GetAsync(cancellationToken: cancellationToken);
+            }
+            catch (ServiceException ex)
+            {
+                Logger.LogError(ex, "An error occurred while retrieving the email.");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "An unexpected error occurred.");
+                throw;
+            }
+        }
+
+        /// <summary>
         /// Sends an email using the Microsoft Graph API.
         /// </summary>
         /// <param name="email">The email message to send.</param>
