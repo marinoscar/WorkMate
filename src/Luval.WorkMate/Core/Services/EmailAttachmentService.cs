@@ -1,9 +1,11 @@
 ﻿using Luval.AuthMate.Core;
 using Luval.GenAIBotMate.Core.Services;
 using Microsoft.Extensions.Logging;
+using Microsoft.Graph.Drives.Item.Items.Item.GetActivitiesByIntervalWithStartDateTimeWithEndDateTimeWithInterval;
 using Microsoft.Graph.Models;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -45,7 +47,14 @@ namespace Luval.WorkMate.Core.Services
             {
                 var img = new ImageContent(attachment.ContentBytes, attachment.ContentType);
             }
-            collection.Add(new Microsoft.SemanticKernel.TextContent(""));
+            collection.Add(new Microsoft.SemanticKernel.TextContent(GetPrompt()));
+
+            var settings = new OpenAIPromptExecutionSettings() { 
+                ModelId = "gpt4-o",
+                Temperature = 0
+            };
+
+            var response = await _genAIBotService.GetChatMessageAsync(history, settings, cancellationToken).ConfigureAwait(false);
         }
 
         private string GetSystemMessage()
@@ -60,6 +69,22 @@ You are a highly intelligent and specialized assistant designed to analyze and p
 - Summary Generation: Create a concise summary of the overall content.
 - Contextual Parsing: Detect and annotate relevant metadata, such as bullet points, headers, or any unique formatting.
 - Error Handling: If handwriting is illegible or information is ambiguous, provide a note indicating this.
+";
+        }
+
+        private string GetPrompt()
+        {
+            return @"
+Please extract the text from the image, also do it in markdown inside a codeblock if possible
+Addionally, create a json code block, the json will be fed into a TODO application that has the ability create tasks,
+the structure of the task has a Title and then it has the ability to have To-do items, make sure to group the tasks
+in a way that the task has a main objective and if required add some very tactical todo list.
+
+- Title (key:title)
+- Description of the task (key:notes)
+- Due date of the task if available (key:dueDate)
+- Reminder date in case that the task need to be completed before the due date (key:reminderDate)
+- List of action items, like calling someone, or very tactical short activities, it is just the name of the action item, needs to be an array of string (key:actionItems)
 ";
         }
 
