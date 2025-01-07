@@ -51,7 +51,7 @@ namespace Luval.WorkMate.Core.Services
         /// </remarks>
         public async Task RunServiceAsync(CancellationToken cancellationToken)
         {
-            if (!_intialized)
+            if (!_intialized || !Subscriptions.Any())
             {
                 //create the subscriptions for the first time
                 await CreateSubscriptionsAsync(cancellationToken);

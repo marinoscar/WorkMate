@@ -15,6 +15,10 @@ namespace Luval.WorkMate.Core.HostedService
         private IConfiguration _configuration = default!;
         private Timer? _timer = null;
         private string _category = default!;
+        private TimeSpan _delay;
+        private TimeSpan _interval;
+        private bool _isFirstRun = true;
+
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TimedHostedService"/> class.
@@ -82,7 +86,7 @@ namespace Luval.WorkMate.Core.HostedService
         /// <exception cref="ArgumentException">Thrown when the configuration section or interval value is not found.</exception>
         protected virtual TimeSpan GetDelay()
         {
-            return GetTimeSpan("StartupDelay", TimeSpan.FromMinutes(30));
+            return GetTimeSpan("StartupDelay", TimeSpan.FromMinutes(3));
         }
 
         protected virtual TimeSpan GetTimeSpan(string item, TimeSpan defaultValue)
@@ -119,9 +123,10 @@ namespace Luval.WorkMate.Core.HostedService
             Initialize();
             Logger.LogInformation($"{GetType().Name}  is running.");
 
-            var delay = GetDelay();
-            var interval = GetInterval();
-            _timer = new Timer(TimerCallback, stoppingToken, delay, interval);
+            _delay = GetDelay();
+            _interval = GetInterval();
+            _timer = new Timer(TimerCallback, stoppingToken, _delay, _interval);
+
             await OnTickAsync(stoppingToken);
         }
 
@@ -138,7 +143,7 @@ namespace Luval.WorkMate.Core.HostedService
 
             Logger.LogDebug($"{GetType().Name} is working. Count: {count} next run in {GetInterval()}");
 
-            if (count > ulong.MaxValue - 100) count = 0;
+            if (count > ulong.MaxValue - 100) executionCount = 0;
         }
 
         /// <summary>
