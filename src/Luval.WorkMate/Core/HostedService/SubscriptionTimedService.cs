@@ -1,5 +1,7 @@
-﻿using Luval.WorkMate.Core.Services;
+﻿using Luval.WorkMate.Core.Resolver;
+using Luval.WorkMate.Core.Services;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -9,17 +11,26 @@ using System.Threading.Tasks;
 
 namespace Luval.WorkMate.Core.HostedService
 {
-    public class SubscriptionTimedService : TimedHostedService
+    /// <summary>
+    /// A hosted service that runs the <see cref="SubscriptionService"/> at specified intervals.
+    /// </summary>
+    public class SubscriptionTimedService(IServiceProvider serviceProvider) : TimedHostedService(serviceProvider)
     {
-        private readonly SubscriptionService _service;
+        private SubscriptionService _service = default!;
 
-        public SubscriptionTimedService(SubscriptionService service, IConfiguration configuration, ILoggerFactory loggerFactory) : base(configuration, loggerFactory)
-        {
-            _service = service ?? throw new ArgumentNullException(nameof(service));
-        }
-
+        /// <summary>
+        /// Executes the subscription service asynchronously.
+        /// </summary>
+        /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
         public override async Task DoWorkAsync(CancellationToken cancellationToken)
         {
+            if (_service == null)
+                //_service = ServiceScope.ServiceProvider.GetRequiredService<SubscriptionService>();
+                _service = new SubscriptionService(ServiceScope.ServiceProvider.GetRequiredService<IConfiguration>(),
+                        new ServiceUserAuthenticationResolver(ServiceScope.ServiceProvider),
+                        ServiceScope.ServiceProvider.GetRequiredService<ILoggerFactory>());
+
             await _service.RunServiceAsync(cancellationToken);
         }
     }

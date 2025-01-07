@@ -19,7 +19,7 @@ namespace Luval.WorkMate.Infrastructure.Configuration
         public static IServiceCollection AddWorkMateServices(this IServiceCollection s)
         {
             s.AddScoped<BearingTokenResolver>();
-            s.AddScoped<IAuthenticationProvider, AuthenticationResolver>();
+            s.AddScoped<IAuthenticationProvider, WebUserAuthenticationResolver>();
             s.AddScoped<TodoService>();
             s.AddScoped<WorkMateAgent>();
             s.AddScoped<BotResolver>();
@@ -28,7 +28,7 @@ namespace Luval.WorkMate.Infrastructure.Configuration
             s.AddScoped<AppConnectionService>();
             s.AddScoped<AgentConnectionService>();
             s.AddScoped<EmailService>();
-            s.AddSingleton<SubscriptionService>();
+            s.AddScoped<SubscriptionService>();
 
             s.AddHostedService<SubscriptionTimedService>();
             return s;

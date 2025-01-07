@@ -1,6 +1,8 @@
 ﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using System;
 
 namespace Luval.WorkMate.Core.HostedService
 {
@@ -10,26 +12,37 @@ namespace Luval.WorkMate.Core.HostedService
     public abstract class TimedHostedService : IHostedService, IDisposable
     {
         private ulong executionCount = 0;
-        private readonly ILogger _logger;
-        private readonly IConfiguration _configuration;
-        private PeriodicTimer? _timer = null;
-        private readonly string _category;
+        private ILogger _logger = default!;
+        private IConfiguration _configuration = default!;
+        private Timer? _timer = null;
+        private string _category = default!;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="TimedHostedService"/> class.
         /// </summary>
-        /// <param name="configuration">The configuration instance to retrieve settings from.</param>
-        /// <param name="loggerFactory">The logger factory instance to create loggers.</param>
-        /// <exception cref="ArgumentNullException">
-        /// Thrown when <paramref name="configuration"/> or <paramref name="loggerFactory"/> is null.
-        /// </exception>
-        public TimedHostedService(IConfiguration configuration, ILoggerFactory loggerFactory)
+        /// <param name="serviceProvider">The service provider instance.</param>
+        /// <exception cref="ArgumentNullException">Thrown when the service provider is null.</exception>
+        public TimedHostedService(IServiceProvider serviceProvider)
         {
+            ServiceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+        }
+
+        private void Initialize()
+        {
+            var loggerFactory = ServiceProvider.GetRequiredService<ILoggerFactory>();
+            _configuration = ServiceProvider.GetRequiredService<IConfiguration>();
+
             if (loggerFactory == null) throw new ArgumentNullException(nameof(loggerFactory));
             _category = GetType().Name;
             _logger = loggerFactory.CreateLogger(GetType().Name);
-            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         }
+
+        /// <summary>
+        /// Gets the service provider instance.
+        /// </summary>
+        protected virtual IServiceProvider ServiceProvider { get; private set; }
+
+        protected virtual IServiceScope ServiceScope { get; private set; } = default!;
 
 
         /// <summary>
@@ -72,9 +85,11 @@ namespace Luval.WorkMate.Core.HostedService
         /// <returns>A task that represents the asynchronous start operation.</returns>
         public virtual async Task StartAsync(CancellationToken stoppingToken)
         {
+            ServiceScope = ServiceProvider.CreateScope();
+            Initialize();
             _logger.LogInformation("Timed Hosted Service running.");
 
-            _timer = new PeriodicTimer(GetTimeSpan());
+            _timer = new Timer(TimerCallback, stoppingToken, TimeSpan.FromSeconds(30), GetTimeSpan());
             await OnTickAsync(stoppingToken);
         }
 
@@ -86,15 +101,11 @@ namespace Luval.WorkMate.Core.HostedService
         private async Task OnTickAsync(CancellationToken stoppingToken)
         {
             var count = Interlocked.Increment(ref executionCount);
-            while (_timer != null &&  await _timer.WaitForNextTickAsync())
-            {
-                await DoWorkAsync(stoppingToken);
 
-                _logger.LogDebug(
-                "Timed Hosted Service is working. Count: {Count}", count);
+            _logger.LogDebug("Timed Hosted Service is working. Count: {Count}", count);
+            await DoWorkAsync(stoppingToken);
 
-                if (count > ulong.MaxValue - 100) count = 0;
-            }
+            if (count > ulong.MaxValue - 100) count = 0;
         }
 
         /// <summary>
@@ -112,12 +123,24 @@ namespace Luval.WorkMate.Core.HostedService
             return Task.CompletedTask;
         }
 
+        private void InvokeSync(Func<Task> run)
+        {
+            Task.Run(async () => await run()).GetAwaiter().GetResult();
+        }
+
+        private void TimerCallback(object? state)
+        {
+            if (state == null) state = CancellationToken.None;
+            InvokeSync(() => OnTickAsync((CancellationToken)state));
+        }
+
         /// <summary>
         /// Disposes the hosted service.
         /// </summary>
         public void Dispose()
         {
-            if (_timer != null) _timer.Dispose();
+            ServiceScope?.Dispose();
+            _timer?.Dispose();
         }
     }
 }

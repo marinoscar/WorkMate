@@ -9,28 +9,37 @@ using System.Threading.Tasks;
 namespace Luval.WorkMate.Core.Resolver
 {
     /// <summary>
-    /// Provides authentication for HTTP requests using bearer tokens.
+    /// Base class for resolving authentication by providing bearer tokens.
     /// </summary>
-    public class AuthenticationResolver : IAuthenticationProvider
+    public abstract class AuthenticationResolverBase : IAuthenticationProvider
     {
         private readonly BearingTokenResolver _tokenResolver;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="AuthenticationResolver"/> class.
+        /// Initializes a new instance of the <see cref="AuthenticationResolverBase"/> class.
         /// </summary>
-        /// <param name="tokenResolver">The token resolver to use for retrieving tokens.</param>
-        /// <exception cref="ArgumentNullException">Thrown when the tokenResolver is null.</exception>
-        public AuthenticationResolver(BearingTokenResolver tokenResolver)
+        /// <param name="serviceProvider">The service provider to resolve dependencies.</param>
+        /// <exception cref="InvalidOperationException">Thrown when the token resolver cannot be resolved.</exception>
+        protected AuthenticationResolverBase(IServiceProvider serviceProvider)
         {
-            _tokenResolver = tokenResolver ?? throw new ArgumentNullException(nameof(tokenResolver));
+            _tokenResolver = GetTokenResolver(serviceProvider);
+            if (_tokenResolver == null) throw new InvalidOperationException($"Unabled to resolve the BearingTokenResolver by invoking GetTokenResolver()");
         }
+
+        /// <summary>
+        /// Creates a new instance of the <see cref="BearingTokenResolver"/>.
+        /// </summary>
+        /// <param name="serviceProvider">The <see cref="IServiceProvider"/> to solve dependencies.</param>
+        /// <returns>A new instance of <see cref="BearingTokenResolver"/>.</returns>
+        protected abstract BearingTokenResolver GetTokenResolver(IServiceProvider serviceProvider);
 
         /// <summary>
         /// Authenticates the specified HTTP request by adding a bearer token to its headers.
         /// </summary>
         /// <param name="request">The HTTP request to authenticate.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        public async Task AuthenticateRequestAsync(HttpRequestMessage request)
+        /// <exception cref="ArgumentNullException">Thrown when the request is null.</exception>
+        public virtual async Task AuthenticateRequestAsync(HttpRequestMessage request)
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
             var token = await _tokenResolver.GetTokenAsync("Microsoft");
@@ -44,7 +53,8 @@ namespace Luval.WorkMate.Core.Resolver
         /// <param name="additionalAuthenticationContext">Additional context for authentication.</param>
         /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        public async Task AuthenticateRequestAsync(RequestInformation request, Dictionary<string, object>? additionalAuthenticationContext = null, CancellationToken cancellationToken = default)
+        /// <exception cref="ArgumentNullException">Thrown when the request or its headers are null.</exception>
+        public virtual async Task AuthenticateRequestAsync(RequestInformation request, Dictionary<string, object>? additionalAuthenticationContext = null, CancellationToken cancellationToken = default)
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
             if (request.Headers == null) throw new ArgumentNullException(nameof(request.Headers));
