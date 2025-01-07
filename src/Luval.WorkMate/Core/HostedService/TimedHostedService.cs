@@ -45,7 +45,7 @@ namespace Luval.WorkMate.Core.HostedService
         /// <exception cref="ArgumentException">Thrown when the configuration section or interval value is not found.</exception>
         protected virtual TimeSpan GetTimeSpan()
         {
-            _logger.LogInformation("Retrieving interval for hosted service category: {Category}", _category);
+            _logger.LogInformation("Retrieving interval for hosted service type: {Category}", _category);
 
             var section = _configuration.GetSection($"HostedService:{_category}");
             if (!section.GetChildren().Any())
