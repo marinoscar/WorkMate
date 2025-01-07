@@ -12,24 +12,46 @@ using System.Threading.Tasks;
 
 namespace Luval.WorkMate.Core.Services
 {
+    /// <summary>
+    /// Service for managing Microsoft Graph subscriptions.
+    /// </summary>
     public class SubscriptionService : MicrosoftGraphServiceBase
     {
         private readonly IConfiguration _configuration;
         private readonly SubscriptionConfiguration _subscriptionConfiguration;
         private static bool _subscriptionsRetrieved = false;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SubscriptionService"/> class.
+        /// </summary>
+        /// <param name="configuration">The configuration instance.</param>
+        /// <param name="authProvider">The authentication provider for Microsoft Graph.</param>
+        /// <param name="loggerFactory">The logger factory to create loggers.</param>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="configuration"/> is null.</exception>
         public SubscriptionService(IConfiguration configuration, IAuthenticationProvider authProvider, ILoggerFactory loggerFactory) : base(authProvider, loggerFactory)
         {
             _configuration = configuration ?? throw new ArgumentException(nameof(configuration));
             _subscriptionConfiguration = new SubscriptionConfiguration(_configuration);
         }
 
-        public static Dictionary<string, Subscription> Subscriptions { get; private set; } = [];
+        /// <summary>
+        /// Gets the list of subscriptions and keeps them in memory during the application lifecycle.
+        /// </summary>
+        public static Dictionary<string, Subscription> Subscriptions { get; private set; } = new Dictionary<string, Subscription>();
 
+        /// <summary>
+        /// Creates subscriptions asynchronously based on the configuration.
+        /// </summary>
+        /// <param name="cancellationToken">The cancellation token to cancel the operation.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        /// <remarks>
+        /// This method first loads all existing subscriptions into memory if they have not been loaded yet.
+        /// Then, it iterates through the subscription configuration and creates new subscriptions with the specified properties.
+        /// </remarks>
         public async Task CreateSubscriptionsAsync(CancellationToken cancellationToken = default)
         {
             //first loads all into memory if it is the first time
-            if (!_subscriptionsRetrieved) 
+            if (!_subscriptionsRetrieved)
                 await LoadAllAsync(cancellationToken);
 
             foreach (var sub in _subscriptionConfiguration.Subscriptions)
@@ -46,9 +68,16 @@ namespace Luval.WorkMate.Core.Services
             }
         }
 
+        /// <summary>
+        /// Creates a new subscription asynchronously.
+        /// </summary>
+        /// <param name="subscription">The subscription to create.</param>
+        /// <param name="cancellationToken">The cancellation token to cancel the operation.</param>
+        /// <returns>The created subscription, or null if the creation failed.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when the subscription is null.</exception>
         public async Task<Subscription?> CreateSubscriptionAsync(Subscription subscription, CancellationToken cancellationToken = default)
         {
-            if(subscription == null) throw new ArgumentNullException(nameof(subscription));
+            if (subscription == null) throw new ArgumentNullException(nameof(subscription));
             try
             {
                 subscription = await GraphClient.Subscriptions.PostAsync(subscription, cancellationToken: cancellationToken);
@@ -65,6 +94,11 @@ namespace Luval.WorkMate.Core.Services
             return subscription;
         }
 
+        /// <summary>
+        /// Renews subscriptions asynchronously based on the configuration.
+        /// </summary>
+        /// <param name="cancellationToken">The cancellation token to cancel the operation.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
         public async Task RenewSubscriptionsAsync(CancellationToken cancellationToken = default)
         {
             var expWindow = DateTimeOffset.UtcNow.AddMinutes(_subscriptionConfiguration.RenewalWindowInMinutes);
@@ -78,6 +112,11 @@ namespace Luval.WorkMate.Core.Services
             }
         }
 
+        /// <summary>
+        /// Loads all existing subscriptions into memory asynchronously.
+        /// </summary>
+        /// <param name="cancellationToken">The cancellation token to cancel the operation.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
         public async Task LoadAllAsync(CancellationToken cancellationToken)
         {
             if (!_subscriptionsRetrieved)
@@ -90,10 +129,15 @@ namespace Luval.WorkMate.Core.Services
                     if (!string.IsNullOrEmpty(sub.Id))
                         Subscriptions[sub.Id] = sub;
                 }
+                Logger.LogInformation($"Loaded {Subscriptions.Count} subscriptions");
                 _subscriptionsRetrieved = true;
             }
         }
 
+        /// <summary>
+        /// Determines if the current environment is development.
+        /// </summary>
+        /// <returns>True if the environment is development; otherwise, false.</returns>
         private bool IsDev()
         {
             var environmentName = _configuration["ASPNETCORE_ENVIRONMENT"];
@@ -104,6 +148,11 @@ namespace Luval.WorkMate.Core.Services
             return false;
         }
 
+        /// <summary>
+        /// Gets the notification URL based on the environment.
+        /// </summary>
+        /// <param name="sub">The subscription item.</param>
+        /// <returns>The notification URL.</returns>
         private string GetNotificationUrl(SubscriptionItem sub)
         {
             return IsDev() ? sub.DevNotificationUrl : sub.ProdNotificationUrl;
