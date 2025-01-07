@@ -67,6 +67,6 @@ namespace Luval.WorkMate.Infrastructure.Configuration
         public string DevNotificationUrl { get; set; } = default!;
         public string ProdNotificationUrl { get; set; } = default!;
         public string Resource { get; set; } = default!;
-        public int DurationInMinutes { get; set; } = (5 * 60);
+        public int DurationInMinutes { get; set; } = 120;
     }
 }
