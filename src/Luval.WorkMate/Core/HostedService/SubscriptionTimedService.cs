@@ -35,7 +35,7 @@ namespace Luval.WorkMate.Core.HostedService
             if (_service == null)
                 //_service = ServiceScope.ServiceProvider.GetRequiredService<SubscriptionService>();
                 _service = new SubscriptionService(ServiceScope.ServiceProvider.GetRequiredService<IConfiguration>(),
-                        new ServiceUserAuthenticationResolver(ServiceScope.ServiceProvider),
+                        new WebUserAuthenticationResolver(ServiceScope.ServiceProvider),
                         ServiceScope.ServiceProvider.GetRequiredService<ILoggerFactory>());
 
             Logger.LogDebug("Running the subscription service");
