@@ -23,9 +23,7 @@ namespace Luval.WorkMate.Core.Resolver
             var logger = serviceProvider.GetRequiredService<ILoggerFactory>();
             return new BearingTokenResolver(
                 serviceProvider.GetRequiredService<AppConnectionService>(),
-                serviceProvider.GetRequiredService<IConfiguration>(),
-                serviceProvider.GetRequiredService<IUserResolver>(),
-                logger.CreateLogger<BearingTokenResolver>()
+                serviceProvider.GetRequiredService<IUserResolver>()
             );
         }
     }
