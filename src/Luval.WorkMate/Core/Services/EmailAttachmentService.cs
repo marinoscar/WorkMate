@@ -49,50 +49,29 @@ namespace Luval.WorkMate.Core.Services
         /// <param name="cancellationToken">A token to cancel the operation.</param>  
         public async Task ProcessEmailAttachmentAsync(string emailId, CancellationToken cancellationToken = default)
         {
-            _logger.LogInformation("Starting to process email attachment for email ID: {EmailId}", emailId);
-
             var email = await _emailService.GetEmailAsync(emailId, cancellationToken).ConfigureAwait(false);
-            if (email == null)
-            {
-                _logger.LogWarning("Email with ID {EmailId} not found.", emailId);
-                return;
-            }
-
-            if (string.IsNullOrEmpty(email.From.EmailAddress.Address))
-            {
-                _logger.LogWarning("Email from address is empty for email ID: {EmailId}", emailId);
-                return;
-            }
-
-            _logger.LogInformation("Processing email from: {EmailFrom}", email.From.EmailAddress.Address);
-
-            if (!email.From.EmailAddress.Address.ToLowerInvariant().Contains("remarkable.com"))
-            {
-                _logger.LogInformation("Email is not from a trusted domain: {EmailFrom}", email.From.EmailAddress.Address);
-                return;
-            }
-
+            if (email == null) return;
+            if (string.IsNullOrEmpty(email.From.EmailAddress.Address)) return;
+            _logger.LogInformation("Processing email {0}", email.From.ToJson());
+            if (!email.From.EmailAddress.Address.ToLowerInvariant().Contains("remarkable.com")) return;
             if (email.HasAttachments != null && !email.HasAttachments.Value)
             {
-                _logger.LogInformation("Email {EmailId} has no attachments", email.Id);
+                _logger.LogInformation("Email {0} has no attachments", email.Id);
                 return;
             }
-
             var attachments = await _emailService.GetEmailAttachmentsAsync(emailId, cancellationToken).ConfigureAwait(false);
             var imageAttachments = attachments.Where(i => IsImageType(i));
 
             if (imageAttachments == null || !imageAttachments.Any())
             {
-                _logger.LogInformation("Email {EmailId} has no image attachments", email.Id);
+                _logger.LogInformation("Email {0} has no image attachments", email.Id);
                 return;
             }
-
             var history = new ChatHistory(GetSystemMessage());
             var collection = new ChatMessageContentItemCollection();
             foreach (var attachment in imageAttachments)
             {
                 var img = new ImageContent(attachment.ContentBytes, attachment.ContentType);
-                _logger.LogInformation("Processing image attachment: {AttachmentName}", attachment.Name);
             }
             collection.Add(new TextContent(GetPrompt()));
 
@@ -108,25 +87,18 @@ namespace Luval.WorkMate.Core.Services
             {
                 text.AppendLine(item.Text);
             }
-
             var taskResponse = new AITaskResponse();
             taskResponse.ParseAI(text.ToString());
             await CreateTodoTasksAsync(taskResponse, cancellationToken);
-
-            _logger.LogInformation("Finished processing email attachment for email ID: {EmailId}", emailId);
         }
 
-        /// <summary>
-        /// Extracts email IDs from a JSON string containing a specific JSON structure.
-        /// </summary>
-        /// <param name="jsonContent">The JSON string containing the array of data.</param>
-        /// <returns>A list of extracted email IDs.</returns>
+
         public List<string> GetEmailIds(string jsonContent)
         {
-            _logger.LogInformation("Extracting email IDs from JSON content.");
             var jsonDocument = JsonDocument.Parse(jsonContent);
             return GetEmailIds(jsonDocument);
         }
+
 
         /// <summary>
         /// Extracts email IDs from a JsonDocument containing a specific JSON structure.
@@ -139,7 +111,6 @@ namespace Luval.WorkMate.Core.Services
         {
             if (jsonDocument == null)
             {
-                _logger.LogError("The input JsonDocument cannot be null.");
                 throw new ArgumentNullException(nameof(jsonDocument), "The input JsonDocument cannot be null.");
             }
 
@@ -150,7 +121,6 @@ namespace Luval.WorkMate.Core.Services
                 // Ensure the root is an array
                 if (jsonDocument.RootElement.ValueKind != JsonValueKind.Array)
                 {
-                    _logger.LogError("The JSON document must contain an array at the root.");
                     throw new InvalidOperationException("The JSON document must contain an array at the root.");
                 }
 
@@ -160,7 +130,6 @@ namespace Luval.WorkMate.Core.Services
                     // Validate the presence of the "Resource" property
                     if (!element.TryGetProperty("Resource", out var resourceProperty) || resourceProperty.ValueKind != JsonValueKind.String)
                     {
-                        _logger.LogError("Each JSON element must contain a valid 'Resource' property of type string.");
                         throw new InvalidOperationException("Each JSON element must contain a valid 'Resource' property of type string.");
                     }
 
@@ -170,7 +139,6 @@ namespace Luval.WorkMate.Core.Services
                     // Validate the format of the Resource string
                     if (string.IsNullOrWhiteSpace(resource) || !resource.Contains("/Messages/"))
                     {
-                        _logger.LogError("Invalid 'Resource' value: {Resource}", resource);
                         throw new InvalidOperationException($"Invalid 'Resource' value: {resource}");
                     }
 
@@ -182,19 +150,19 @@ namespace Luval.WorkMate.Core.Services
                     }
                     else
                     {
-                        _logger.LogError("The 'Resource' string is not in the expected format: {Resource}", resource);
                         throw new InvalidOperationException($"The 'Resource' string is not in the expected format: {resource}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while extracting email IDs.");
                 throw new Exception("An error occurred while extracting email IDs.", ex);
             }
 
             return emailIds;
         }
+
+
 
         /// <summary>  
         /// Creates to-do tasks asynchronously based on the AI task response.  
@@ -238,16 +206,16 @@ namespace Luval.WorkMate.Core.Services
         private string GetSystemMessage()
         {
             return @"  
-        You are a highly intelligent and specialized assistant designed to analyze and process handwritten notes captured as images. Your primary task is to accurately extract the information contained in these notes and organize it into a structured JSON format. Your processing capabilities include:  
+    You are a highly intelligent and specialized assistant designed to analyze and process handwritten notes captured as images. Your primary task is to accurately extract the information contained in these notes and organize it into a structured JSON format. Your processing capabilities include:  
 
-        - Text Extraction: Extract and transcribe all legible handwritten text from the images.  
-        - Action Item Identification: Identify actionable tasks or items, such as tasks that start with verbs like ""Call,"" ""Submit,"" ""Send,"" or explicit mentions of to-dos.  
-        - Date and Time Recognition: Detect and extract any dates, times, or temporal references mentioned in the notes.  
-        - Topic Categorization: Identify the main topics or subjects mentioned in the notes.  
-        - Summary Generation: Create a concise summary of the overall content.  
-        - Contextual Parsing: Detect and annotate relevant metadata, such as bullet points, headers, or any unique formatting.  
-        - Error Handling: If handwriting is illegible or information is ambiguous, provide a note indicating this.  
-        ";
+    - Text Extraction: Extract and transcribe all legible handwritten text from the images.  
+    - Action Item Identification: Identify actionable tasks or items, such as tasks that start with verbs like ""Call,"" ""Submit,"" ""Send,"" or explicit mentions of to-dos.  
+    - Date and Time Recognition: Detect and extract any dates, times, or temporal references mentioned in the notes.  
+    - Topic Categorization: Identify the main topics or subjects mentioned in the notes.  
+    - Summary Generation: Create a concise summary of the overall content.  
+    - Contextual Parsing: Detect and annotate relevant metadata, such as bullet points, headers, or any unique formatting.  
+    - Error Handling: If handwriting is illegible or information is ambiguous, provide a note indicating this.  
+    ";
         }
 
         /// <summary>  
@@ -257,29 +225,29 @@ namespace Luval.WorkMate.Core.Services
         private string GetPrompt()
         {
             return @"  
-        Please extract the text from the image, also do it in markdown inside a codeblock if possible  
-        Addionally, create a json code block, the json will be fed into a TODO application that has the ability create tasks,  
-        the structure of the task has a Title and then it has the ability to have To-do items, make sure to group the tasks  
-        in a way that the task has a main objective and if required add some very tactical todo list.  
+    Please extract the text from the image, also do it in markdown inside a codeblock if possible  
+    Addionally, create a json code block, the json will be fed into a TODO application that has the ability create tasks,  
+    the structure of the task has a Title and then it has the ability to have To-do items, make sure to group the tasks  
+    in a way that the task has a main objective and if required add some very tactical todo list.  
 
-        - Category of the task, use your judgement to determine if the task is Personal, Work, or if you don't know use Tasks as the category (key:category)  
-        - Title (key:title)  
-        - Description of the task (key:notes)  
-        - Due date of the task if available (key:dueDate)  
-        - Reminder date in case that the task need to be completed before the due date (key:reminderDate)  
-        - List of action items, like calling someone, or very tactical short activities, it is just the name of the action item, needs to be an array of string (key:actionItems)  
-        ";
+    - Category of the task, use your judgement to determine if the task is Personal, Work, or if you don't know use Tasks as the category (key:category)  
+    - Title (key:title)  
+    - Description of the task (key:notes)  
+    - Due date of the task if available (key:dueDate)  
+    - Reminder date in case that the task need to be completed before the due date (key:reminderDate)  
+    - List of action items, like calling someone, or very tactical short activities, it is just the name of the action item, needs to be an array of string (key:actionItems)  
+    ";
         }
 
         private static readonly HashSet<string> AllowedImageMimeTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-               {
-                   "image/png",
-                   "image/jpeg",
-                   "image/jpg",
-                   "image/gif",
-                   "image/tiff",
-                   "image/bmp"
-               };
+           {
+               "image/png",
+               "image/jpeg",
+               "image/jpg",
+               "image/gif",
+               "image/tiff",
+               "image/bmp"
+           };
 
         /// <summary>  
         /// Determines if the file attachment is an image type.  
