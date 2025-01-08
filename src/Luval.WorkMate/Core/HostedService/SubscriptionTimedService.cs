@@ -26,12 +26,12 @@ namespace Luval.WorkMate.Core.HostedService
         /// <returns>A task that represents the asynchronous operation.</returns>
         public override async Task DoWorkAsync(CancellationToken cancellationToken)
         {
-            if (isFirstTime)
-            {
-                Logger.LogInformation("First time, waiting for the next execution");
-                isFirstTime = false;
-                return;
-            }
+            //if (isFirstTime)
+            //{
+            //    Logger.LogInformation("First time, waiting for the next execution");
+            //    isFirstTime = false;
+            //    return;
+            //}
             if (_service == null)
                 //_service = ServiceScope.ServiceProvider.GetRequiredService<SubscriptionService>();
                 _service = new SubscriptionService(ServiceScope.ServiceProvider.GetRequiredService<IConfiguration>(),
