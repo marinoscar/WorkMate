@@ -16,25 +16,19 @@ namespace Luval.WorkMate.Core.Resolver
 
 
         private readonly AppConnectionService _connectionService;
-        private readonly IConfiguration _config;
-        private readonly ILogger<BearingTokenResolver> _logger;
         private readonly IUserResolver _userResolver;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AppConnectionResolver"/> class.
         /// </summary>
         /// <param name="connectionService">The service to manage application connections.</param>
-        /// <param name="configuration">The application configuration.</param>
         /// <param name="userResolver">The user resolver instance.</param>  
-        /// <param name="logger">The logger instance.</param>
         /// <exception cref="ArgumentNullException">
         /// Thrown when any of the parameters are null.
         /// </exception>
-        public BearingTokenResolver(AppConnectionService connectionService, IConfiguration configuration, IUserResolver userResolver, ILogger<BearingTokenResolver> logger)
+        public BearingTokenResolver(AppConnectionService connectionService,  IUserResolver userResolver)
         {
             _connectionService = connectionService ?? throw new ArgumentNullException(nameof(connectionService));
-            _config = configuration ?? throw new ArgumentNullException(nameof(configuration));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _userResolver = userResolver ?? throw new ArgumentNullException(nameof(userResolver));
         }
         /// <summary>
