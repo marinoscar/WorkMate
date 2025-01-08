@@ -14,6 +14,7 @@ using Microsoft.Graph;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Luval.WorkMate.Core.Services;
+using System.Net.Http.Json;
 
 namespace Luval.WorkMate.Web
 {
@@ -68,8 +69,11 @@ namespace Luval.WorkMate.Web
 
             _logger.LogInformation($"Received {notifications.Value.Count} notifications.\nHere is the content\n{content}");
 
-            // Perform a background task to process the notifications
-            PerformBackgroundTask(content);
+            var ids = _emailAttachmentService.GetEmailIds(content);
+            foreach (var id in ids)
+            {
+                await _emailAttachmentService.ProcessEmailAttachmentAsync(id);
+            }
 
             // Process the notification (e.g., parse the request body and act on new emails)
             return Accepted();
@@ -84,11 +88,7 @@ namespace Luval.WorkMate.Web
 
         private async void PerformBackgroundTask(string jsonContent)
         {
-            var ids = _emailAttachmentService.GetEmailIds(jsonContent);
-            foreach (var id in ids)
-            {
-                await _emailAttachmentService.ProcessEmailAttachmentAsync(id);
-            }
+            
         } 
     }
 }

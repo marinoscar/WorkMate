@@ -71,9 +71,10 @@ namespace Luval.WorkMate.Core.Services
             var collection = new ChatMessageContentItemCollection();
             foreach (var attachment in imageAttachments)
             {
-                var img = new ImageContent(attachment.ContentBytes, attachment.ContentType);
+                collection.Add(new ImageContent(attachment.ContentBytes, attachment.ContentType));
             }
             collection.Add(new TextContent(GetPrompt()));
+            history.AddUserMessage(collection);
 
             var settings = new OpenAIPromptExecutionSettings()
             {
