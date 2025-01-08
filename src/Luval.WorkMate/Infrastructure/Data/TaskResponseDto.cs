@@ -76,7 +76,7 @@ namespace Luval.WorkMate.Infrastructure.Data
                 TaskText = matches[0].Groups[1].Value.Trim();
 
                 // Second code block is JSON (Tasks)
-                var jsonText = matches[1].Groups[1].Value.Trim();
+                var jsonText = ExtractJsonFromText(matches[1].Groups[1].Value.Trim());
 
                 Tasks = JsonSerializer.Deserialize<List<AIResponseTodoTaskDto>>(jsonText, new JsonSerializerOptions
                 {
@@ -134,6 +134,13 @@ namespace Luval.WorkMate.Infrastructure.Data
                 records.Add(new TodoTaskRecord(todoTask, task.Category ?? ""));
             }
             return records;
+        }
+
+        public string ExtractJsonFromText(string text)
+        {
+            var jsonPattern = @"\{(?:[^{}]|(?<open>\{)|(?<-open>\}))+(?(open)(?!))\}";
+            var match = Regex.Match(text, jsonPattern, RegexOptions.Singleline);
+            return match.Success ? match.Value : string.Empty;
         }
     }
 
