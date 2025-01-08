@@ -23,6 +23,11 @@ namespace Luval.WorkMate.Core.Services
         private static bool _intialized = false;
 
         /// <summary>
+        /// Gets the list of subscriptions and keeps them in memory during the application lifecycle.
+        /// </summary>
+        public static Dictionary<string, Subscription> Subscriptions { get; private set; } = new Dictionary<string, Subscription>();
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="SubscriptionService"/> class.
         /// </summary>
         /// <param name="configuration">The configuration instance.</param>
@@ -34,11 +39,6 @@ namespace Luval.WorkMate.Core.Services
             _configuration = configuration ?? throw new ArgumentException(nameof(configuration));
             _subscriptionConfiguration = new SubscriptionConfiguration(_configuration);
         }
-
-        /// <summary>
-        /// Gets the list of subscriptions and keeps them in memory during the application lifecycle.
-        /// </summary>
-        public static Dictionary<string, Subscription> Subscriptions { get; private set; } = new Dictionary<string, Subscription>();
 
         /// <summary>
         /// Runs the subscription service asynchronously.
@@ -81,6 +81,11 @@ namespace Luval.WorkMate.Core.Services
 
             foreach (var sub in _subscriptionConfiguration.Items)
             {
+                if (Subscriptions.ContainsKey(sub.Resource))
+                {
+                    Logger.LogInformation($"Subscription for {sub.Resource} already exists. Expires on {Subscriptions[sub.Resource].ExpirationDateTime}");
+                    continue;
+                }
                 var subscription = new Subscription
                 {
                     ChangeType = sub.ChangeType,
@@ -108,9 +113,9 @@ namespace Luval.WorkMate.Core.Services
                 subscription = await GraphClient.Subscriptions.PostAsync(subscription, cancellationToken: cancellationToken);
 
                 if (subscription != null && !string.IsNullOrEmpty(subscription.Id))
-                    Subscriptions[subscription.Id] = subscription;
+                    Subscriptions[subscription.Resource] = subscription;
 
-                Logger.LogInformation($"Subscription {subscription.ChangeType} for {subscription.Resource}");
+                Logger.LogInformation($"Subscription {subscription.ChangeType} for {subscription.Resource} with Id: {subscription.Id} Expires on: {subscription.ExpirationDateTime}");
             }
             catch (Exception ex)
             {
@@ -152,9 +157,10 @@ namespace Luval.WorkMate.Core.Services
                 foreach (var sub in subs.Value)
                 {
                     if (!string.IsNullOrEmpty(sub.Id))
-                        Subscriptions[sub.Id] = sub;
+                        Subscriptions[sub.Resource] = sub;
                 }
-                Logger.LogInformation($"Loaded {Subscriptions.Count} subscriptions");
+                var allSubs = string.Join("\n", Subscriptions.Select(s => s.Key));
+                Logger.LogInformation($"Loaded subscriptions for resources \n {allSubs}");
                 _subscriptionsRetrieved = true;
             }
         }

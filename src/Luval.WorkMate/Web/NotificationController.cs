@@ -15,6 +15,10 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Luval.WorkMate.Core.Services;
 using System.Net.Http.Json;
+using System.Collections.Concurrent;
+using Luval.WorkMate.Infrastructure.Data;
+using System.Collections;
+using Luval.WorkMate.Infrastructure.Configuration;
 
 namespace Luval.WorkMate.Web
 {
@@ -24,12 +28,13 @@ namespace Luval.WorkMate.Web
     public class NotificationController : ControllerBase
     {
         private readonly ILogger _logger;
-        private readonly EmailAttachmentService _emailAttachmentService;
-        public NotificationController(EmailAttachmentService emailAttachmentService, ILoggerFactory loggerFactory)
+        private readonly UniqueConcurrentQueue<string, ChangeNotification> _queue
+            ;
+        public NotificationController(UniqueConcurrentQueue<string, ChangeNotification> queue, ILoggerFactory loggerFactory)
         {
             if(loggerFactory == null) throw new ArgumentNullException(nameof(loggerFactory));
             _logger = loggerFactory.CreateLogger(GetType().Name);
-            _emailAttachmentService = emailAttachmentService ?? throw new ArgumentNullException(nameof(emailAttachmentService));
+            _queue = queue ?? throw new ArgumentNullException(nameof(queue));
         }
 
         [AllowAnonymous]
@@ -59,20 +64,18 @@ namespace Luval.WorkMate.Web
 
             if (notifications == null || notifications.Value == null)
             {
+                _logger.LogInformation("No notifications found in the request body");
                 return Accepted();
             }
 
-            var content = JsonSerializer.Serialize(notifications.Value, new JsonSerializerOptions(){
-                WriteIndented = true,
-                ReferenceHandler = ReferenceHandler.IgnoreCycles
-            });
-
-            _logger.LogInformation($"Received {notifications.Value.Count} notifications.\nHere is the content\n{content}");
-
-            var ids = _emailAttachmentService.GetEmailIds(content);
-            foreach (var id in ids)
+            foreach (var notification in notifications.Value)
             {
-                await _emailAttachmentService.ProcessEmailAttachmentAsync(id);
+                if (string.IsNullOrEmpty(notification.Resource)) continue;
+
+                if (!_queue.TryEnqueue(notification.Resource, notification))
+                    _logger.LogInformation($"Duplicate resource: {notification.Resource.GetResourceId()}");
+                else
+                    _logger.LogInformation($"Enqueued resource: {notification.Resource.GetResourceId()}");
             }
 
             // Process the notification (e.g., parse the request body and act on new emails)
@@ -85,10 +88,5 @@ namespace Luval.WorkMate.Web
         {
             return "OK";
         }
-
-        private async void PerformBackgroundTask(string jsonContent)
-        {
-            
-        } 
     }
 }
