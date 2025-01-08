@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using Microsoft.Graph;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Luval.WorkMate.Core.Services;
 
 namespace Luval.WorkMate.Web
 {
@@ -22,10 +23,12 @@ namespace Luval.WorkMate.Web
     public class NotificationController : ControllerBase
     {
         private readonly ILogger _logger;
-        public NotificationController(ILoggerFactory loggerFactory)
+        private readonly EmailAttachmentService _emailAttachmentService;
+        public NotificationController(EmailAttachmentService emailAttachmentService, ILoggerFactory loggerFactory)
         {
             if(loggerFactory == null) throw new ArgumentNullException(nameof(loggerFactory));
             _logger = loggerFactory.CreateLogger(GetType().Name);
+            _emailAttachmentService = emailAttachmentService ?? throw new ArgumentNullException(nameof(emailAttachmentService));
         }
 
         [AllowAnonymous]
@@ -65,6 +68,8 @@ namespace Luval.WorkMate.Web
 
             _logger.LogInformation($"Received {notifications.Value.Count} notifications.\nHere is the content\n{content}");
 
+            // Perform a background task to process the notifications
+            PerformBackgroundTask(content);
 
             // Process the notification (e.g., parse the request body and act on new emails)
             return Accepted();
@@ -76,5 +81,14 @@ namespace Luval.WorkMate.Web
         {
             return "OK";
         }
+
+        private async void PerformBackgroundTask(string jsonContent)
+        {
+            var ids = _emailAttachmentService.GetEmailIds(jsonContent);
+            foreach (var id in ids)
+            {
+                await _emailAttachmentService.ProcessEmailAttachmentAsync(id);
+            }
+        } 
     }
 }

@@ -29,6 +29,7 @@ namespace Luval.WorkMate.Infrastructure.Configuration
             s.AddScoped<AgentConnectionService>();
             s.AddScoped<EmailService>();
             s.AddScoped<SubscriptionService>();
+            s.AddScoped<EmailAttachmentService>();
 
             s.AddHostedService<SubscriptionTimedService>();
             return s;
