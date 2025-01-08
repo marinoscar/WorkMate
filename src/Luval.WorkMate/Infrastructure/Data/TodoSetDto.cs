@@ -11,6 +11,6 @@ namespace Luval.WorkMate.Infrastructure.Data
     {
         public string ListId { get; set; } = default!;
         public string DisplanyName { get; set; } = default!;
-        public List<AIResponseTodoTaskDto> Tasks { get; set; } = new List<AIResponseTodoTaskDto>();
+        public List<TodoTask> Tasks { get; set; } = new List<TodoTask>();
     }
 }
