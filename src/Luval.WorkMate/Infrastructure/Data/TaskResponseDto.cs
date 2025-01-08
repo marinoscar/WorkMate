@@ -73,10 +73,10 @@ namespace Luval.WorkMate.Infrastructure.Data
                 }
 
                 // First code block is Markdown (TaskText)
-                TaskText = matches[0].Groups[1].Value.Trim();
+                TaskText = matches[0].Value.Replace("```markdown", "").Replace("```", "").Trim();
 
                 // Second code block is JSON (Tasks)
-                var jsonText = ExtractJsonFromText(matches[1].Groups[1].Value.Trim());
+                var jsonText = matches[1].Value.Replace("```json", "").Replace("```", "").Trim();
 
                 Tasks = JsonSerializer.Deserialize<List<AIResponseTodoTaskDto>>(jsonText, new JsonSerializerOptions
                 {
@@ -134,13 +134,6 @@ namespace Luval.WorkMate.Infrastructure.Data
                 records.Add(new TodoTaskRecord(todoTask, task.Category ?? ""));
             }
             return records;
-        }
-
-        public string ExtractJsonFromText(string text)
-        {
-            var jsonPattern = @"\{(?:[^{}]|(?<open>\{)|(?<-open>\}))+(?(open)(?!))\}";
-            var match = Regex.Match(text, jsonPattern, RegexOptions.Singleline);
-            return match.Success ? match.Value : string.Empty;
         }
     }
 

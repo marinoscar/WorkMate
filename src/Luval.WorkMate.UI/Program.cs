@@ -6,6 +6,7 @@ using Luval.AuthMate.Sqlite;
 using Luval.GenAIBotMate.Infrastructure.Configuration;
 using Luval.GenAIBotMate.Infrastructure.Data;
 using Luval.WorkMate.Infrastructure.Configuration;
+using Luval.WorkMate.Infrastructure.Data;
 using Luval.WorkMate.UI.Components;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.IdentityModel.Tokens;
@@ -16,6 +17,7 @@ namespace Luval.WorkMate.UI
     {
         public static void Main(string[] args)
         {
+
             var builder = WebApplication.CreateBuilder(args);
 
             var config = builder.Configuration;
@@ -113,6 +115,50 @@ namespace Luval.WorkMate.UI
                 .GetResult();
 
             app.Run();
+        }
+
+        private static string Json()
+        {
+            return @"
+```markdown
+12/3/24 OXY Acc Meeting
+
+Q3 earning call went well compared to where the market
+
+follow up discussions around F.D.L.
+maybe ask Lucas
+feedback from the meeting was that they are unsure of the technology
+
+Follow up with Amy Lyster on the opportunity that Hannah has with AI in Internal Audit
+```
+
+```json
+[
+  {
+    ""category"": ""Work"",
+    ""title"": ""OXY Acc Meeting Follow-up"",
+    ""notes"": ""Discuss F.D.L. and address feedback regarding technology understanding."",
+    ""dueDate"": ""2024-12-03"",
+    ""reminderDate"": ""2024-11-30"",
+    ""actionItems"": [
+      ""Ask Lucas about F.D.L."",
+      ""Clarify technology concerns""
+    ]
+  },
+  {
+    ""category"": ""Work"",
+    ""title"": ""AI Opportunity in Internal Audit"",
+    ""notes"": ""Follow up with Amy Lyster on the AI opportunity that Hannah has."",
+    ""dueDate"": ""2024-12-03"",
+    ""reminderDate"": ""2024-11-30"",
+    ""actionItems"": [
+      ""Contact Amy Lyster""
+    ]
+  }
+]
+```
+
+";
         }
     }
 }
