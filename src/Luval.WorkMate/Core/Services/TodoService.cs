@@ -132,22 +132,15 @@ namespace Luval.WorkMate.Core.Services
         /// </summary>
         /// <param name="listId">The ID of the task list.</param>
         /// <param name="task">The task to create.</param>
-        /// <param name="linkedResource">The linked resource for the task.</param>
-        /// <param name="checkListItems">The checklist items for the task.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The created task.</returns>
         /// <exception cref="ArgumentException">Thrown when the listId or task is null or empty.</exception>
-        public async Task<TodoTask?> CreateTaskAsync(string listId, TodoTask task, LinkedResource? linkedResource = null, IEnumerable<string>? checkListItems = null, CancellationToken cancellationToken = default)
+        public async Task<TodoTask?> CreateTaskAsync(string listId, TodoTask task, CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(listId))
                 throw new ArgumentException("List ID cannot be null or empty.", nameof(listId));
             if (task == null)
                 throw new ArgumentException("Task cannot be null.", nameof(task));
-
-            if (linkedResource != null)
-                task.LinkedResources = new List<LinkedResource>() { linkedResource };
-            if (checkListItems != null)
-                task.ChecklistItems = checkListItems.Select(i => new ChecklistItem() { DisplayName = i }).ToList();
 
             try
             {
