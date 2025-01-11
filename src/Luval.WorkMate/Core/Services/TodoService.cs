@@ -15,20 +15,16 @@ using Luval.WorkMate.Infrastructure.Data;
 
 namespace Luval.WorkMate.Core.Services
 {
-    public class TodoService : MicrosoftGraphServiceBase
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TodoService"/> class.
+    /// </summary>
+    /// <param name="authProvider">The authentication provider for Microsoft Graph.</param>
+    /// <param name="loggerFactory">The logger factory to create loggers.</param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="authProvider"/> or <paramref name="loggerFactory"/> is null.</exception>
+    public class TodoService(IAuthenticationProvider authProvider, ILoggerFactory loggerFactory) : MicrosoftGraphServiceBase(authProvider, loggerFactory)
     {
         public const string OpenTaskFilter = "status ne 'completed'";
         public const string CompletedTaskFilter = "status eq 'completed'";
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="TodoService"/> class.
-        /// </summary>
-        /// <param name="authProvider">The authentication provider for Microsoft Graph.</param>
-        /// <param name="loggerFactory">The logger factory to create loggers.</param>
-        /// <exception cref="ArgumentException">Thrown when <paramref name="authProvider"/> or <paramref name="loggerFactory"/> is null.</exception>
-        public TodoService(IAuthenticationProvider authProvider, ILoggerFactory loggerFactory) : base(authProvider, loggerFactory)
-        {
-        }
 
 
         /// <summary>
