@@ -64,6 +64,19 @@ namespace Luval.WorkMate.Core.Services
             }
         }
 
+        /// <summary>
+        /// Retrieves a list of OneNote sections.
+        /// </summary>
+        /// <param name="filterExpression">The filter expression to apply to the sections query.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A list of OneNote sections.</returns>
+        public async Task<IEnumerable<OnenoteSection>> GetSectionsAsync(string? filterExpression, CancellationToken cancellationToken = default)
+        {
+            if(string.IsNullOrEmpty(_defaultNotbookId))
+                await GetDefaultNotebookAsync(cancellationToken);
+            return await GetSectionsAsync(_defaultNotbookId, filterExpression, cancellationToken);
+        }
+
 
         ///<summary>
         /// Retrieves the default OneNote notebook.
@@ -144,6 +157,19 @@ namespace Luval.WorkMate.Core.Services
         }
 
         /// <summary>
+        /// Creates a new OneNote section.
+        /// </summary>
+        /// <param name="sectionName">The name of the section to create.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The created OneNote section.</returns>
+        public async Task<OnenoteSection> CreateSectionAsync(string sectionName, CancellationToken cancellationToken = default)
+        {
+            if(string.IsNullOrEmpty(_defaultNotbookId))
+                await GetDefaultNotebookAsync(cancellationToken);
+            return await CreateSectionAsync(_defaultNotbookId, sectionName, cancellationToken);
+        }
+
+        /// <summary>
         /// Retrieves a list of OneNote pages in a specified section.
         /// </summary>
         /// <param name="notebookId">The ID of the notebook.</param>
@@ -178,6 +204,20 @@ namespace Luval.WorkMate.Core.Services
                 Logger.LogError(ex, "Error retrieving OneNote pages for section ID: {SectionId}.", sectionId);
                 throw;
             }
+        }
+
+        /// <summary>
+        /// Retrieves a list of OneNote pages in a specified section.
+        /// </summary>
+        /// <param name="sectionId">The ID of the section.</param>
+        /// <param name="filterExpression">The filter expression to apply to the pages query.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A list of OneNote pages.</returns>
+        public async Task<IEnumerable<OnenotePage>> GetPagesAsync(string sectionId, string? filterExpression, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrEmpty(_defaultNotbookId))
+                await GetDefaultNotebookAsync(cancellationToken);
+            return await GetPagesAsync(_defaultNotbookId, sectionId, filterExpression, cancellationToken);
         }
 
         /// <summary>
@@ -232,6 +272,22 @@ namespace Luval.WorkMate.Core.Services
                 Logger.LogError(ex, "Error creating OneNote page in section ID: {SectionId}.", sectionId);
                 throw;
             }
+        }
+
+        /// <summary>
+        /// Creates a new OneNote page in a specified section.
+        /// </summary>
+        /// <param name="sectionId">The ID of the section.</param>
+        /// <param name="title">The title of the page.</param>
+        /// <param name="htmlContent">The HTML content of the page.</param>
+        /// <param name="files">The list of files to attach to the page.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The created OneNote page.</returns>
+        public async Task<OnenotePage> CreatePageAsync(string sectionId, string title, string htmlContent, List<OnenoteFile>? files, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrEmpty(_defaultNotbookId))
+                await GetDefaultNotebookAsync(cancellationToken);
+            return await CreatePageAsync(_defaultNotbookId, sectionId, title, htmlContent, files, cancellationToken);
         }
 
         private string GetPageHtml(string title, string content, List<OnenoteFile>? files)
