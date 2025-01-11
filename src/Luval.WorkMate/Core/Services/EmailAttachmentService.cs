@@ -8,6 +8,7 @@ using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using System.Text;
 using System.Text.Json;
+using static Luval.WorkMate.Core.Services.OneNoteService;
 
 
 namespace Luval.WorkMate.Core.Services
@@ -21,6 +22,7 @@ namespace Luval.WorkMate.Core.Services
         private readonly GenAIBotService _genAIBotService;
         private readonly EmailService _emailService;
         private readonly TodoService _todoService;
+        private readonly OneNoteService _oneNoteService;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="EmailAttachmentService"/> class.
@@ -42,6 +44,7 @@ namespace Luval.WorkMate.Core.Services
             _genAIBotService = genAIBotService ?? throw new ArgumentNullException(nameof(genAIBotService));
             _emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
             _todoService = todoService ?? throw new ArgumentNullException(nameof(todoService));
+            _oneNoteService = oneNoteService ?? throw new ArgumentNullException(nameof(oneNoteService));
         }
 
         /// <summary>  
@@ -92,7 +95,59 @@ namespace Luval.WorkMate.Core.Services
             }
             var taskResponse = new AITaskResponse();
             taskResponse.ParseAI(text.ToString());
+            
+            var oneNotePage = await CreateOneNoteAsync(taskResponse, imageAttachments, cancellationToken);
+            var link = "https://onedrive.live.com/redir?resid=" + oneNotePage.Id;
+            taskResponse.LinkedResources = link;
+
             await CreateTodoTasksAsync(taskResponse, cancellationToken);
+        }
+
+        /// <summary>
+        /// Creates a OneNote page asynchronously based on the AI task response and attached files.
+        /// </summary>
+        /// <param name="taskResponse">The AI task response containing the extracted information.</param>
+        /// <param name="files">The collection of file attachments to include in the OneNote page.</param>
+        /// <param name="cancellationToken">A token to cancel the operation.</param>
+        /// <returns>The created OneNote page.</returns>
+        private async Task<OnenotePage> CreateOneNoteAsync(AITaskResponse taskResponse, IEnumerable<FileAttachment> files, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                _logger.LogInformation("Creating OneNote page for task response: {Title}", taskResponse.Title);
+
+                OnenoteSection section = null;
+                var sectionFilter = "displayName eq 'WorkMate'";
+                var sections = await _oneNoteService.GetSectionsAsync(sectionFilter, cancellationToken);
+
+                if (sections == null || !sections.Any())
+                {
+                    _logger.LogInformation("No existing 'WorkMate' section found. Creating a new section.");
+                    section = await _oneNoteService.CreateSectionAsync("WorkMate", cancellationToken);
+                }
+                else
+                {
+                    section = sections.First();
+                    _logger.LogInformation("Using existing 'WorkMate' section with ID: {SectionId}", section.Id);
+                }
+
+                var oneNoteFiles = files.Select(i => new OnenoteFile()
+                {
+                    Content = i.ContentBytes,
+                    Name = i.Name,
+                    ContentType = i.ContentType
+                }).ToList();
+
+                var oneNotePage = await _oneNoteService.CreatePageAsync(section.Id, taskResponse.Title, taskResponse.ImageTextHtml, oneNoteFiles, cancellationToken);
+                _logger.LogInformation("OneNote page created successfully with ID: {PageId}", oneNotePage.Id);
+
+                return oneNotePage;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while creating OneNote page for task response: {Title}", taskResponse.Title);
+                throw;
+            }
         }
 
         /// <summary>  
@@ -137,16 +192,16 @@ namespace Luval.WorkMate.Core.Services
         private string GetSystemMessage()
         {
             return @"  
-    You are a highly intelligent and specialized assistant designed to analyze and process handwritten notes captured as images. Your primary task is to accurately extract the information contained in these notes and organize it into a structured JSON format. Your processing capabilities include:  
+        You are a highly intelligent and specialized assistant designed to analyze and process handwritten notes captured as images. Your primary task is to accurately extract the information contained in these notes and organize it into a structured JSON format. Your processing capabilities include:  
 
-    - Text Extraction: Extract and transcribe all legible handwritten text from the images.  
-    - Action Item Identification: Identify actionable tasks or items, such as tasks that start with verbs like ""Call,"" ""Submit,"" ""Send,"" or explicit mentions of to-dos.  
-    - Date and Time Recognition: Detect and extract any dates, times, or temporal references mentioned in the notes.  
-    - Topic Categorization: Identify the main topics or subjects mentioned in the notes.  
-    - Summary Generation: Create a concise summary of the overall content.  
-    - Contextual Parsing: Detect and annotate relevant metadata, such as bullet points, headers, or any unique formatting.  
-    - Error Handling: If handwriting is illegible or information is ambiguous, provide a note indicating this.  
-    ";
+        - Text Extraction: Extract and transcribe all legible handwritten text from the images.  
+        - Action Item Identification: Identify actionable tasks or items, such as tasks that start with verbs like ""Call,"" ""Submit,"" ""Send,"" or explicit mentions of to-dos.  
+        - Date and Time Recognition: Detect and extract any dates, times, or temporal references mentioned in the notes.  
+        - Topic Categorization: Identify the main topics or subjects mentioned in the notes.  
+        - Summary Generation: Create a concise summary of the overall content.  
+        - Contextual Parsing: Detect and annotate relevant metadata, such as bullet points, headers, or any unique formatting.  
+        - Error Handling: If handwriting is illegible or information is ambiguous, provide a note indicating this.  
+        ";
         }
 
         /// <summary>  
@@ -156,29 +211,31 @@ namespace Luval.WorkMate.Core.Services
         private string GetPrompt()
         {
             return @"  
-    Please extract the text from the image, also do it in markdown inside a codeblock if possible  
-    Addionally, create a json code block, the json will be fed into a TODO application that has the ability create tasks,  
-    the structure of the task has a Title and then it has the ability to have To-do items, make sure to group the tasks  
-    in a way that the task has a main objective and if required add some very tactical todo list.  
+    From the attached email perform the following tasks:
+    - Extract the text from the image, if the text is not clear or readable, make a correction to the text to the best of your ability, correcting typos or incomplete words. 
+    - In a code block in markdown format, write the text extracted from the image. 
+    - Create a json codeblock with a property name title that will have a short title of the extracted text
+    - Create a json code block, the json will be fed into a TODO application, try to make sure the tasks are as few as possible, the structure of the task has a Title and then it has the ability to have To-do items, make sure to group the tasks in a way that the task has a main objective and if required add some very tactical todo list.
+    - The json structure is as follows:
+        - Category of the task, use your judgement to determine if the task is Personal, Work, or if you don't know use Tasks as the category (key:category).
+        - Title (key:title).
+        - Description of the task (key:notes).
+        - Due date of the task if available (key:dueDate).
+        - Reminder date in case that the task need to be completed before the due date (key:reminderDate).
+        - List of action items, like calling someone, or very tactical short activities, it is just the name of the action item, needs to be an array of string (key:actionItems).
 
-    - Category of the task, use your judgement to determine if the task is Personal, Work, or if you don't know use Tasks as the category (key:category)  
-    - Title (key:title)  
-    - Description of the task (key:notes)  
-    - Due date of the task if available (key:dueDate)  
-    - Reminder date in case that the task need to be completed before the due date (key:reminderDate)  
-    - List of action items, like calling someone, or very tactical short activities, it is just the name of the action item, needs to be an array of string (key:actionItems)  
-    ";
+        ";
         }
 
         private static readonly HashSet<string> AllowedImageMimeTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-           {
-               "image/png",
-               "image/jpeg",
-               "image/jpg",
-               "image/gif",
-               "image/tiff",
-               "image/bmp"
-           };
+               {
+                   "image/png",
+                   "image/jpeg",
+                   "image/jpg",
+                   "image/gif",
+                   "image/tiff",
+                   "image/bmp"
+               };
 
         /// <summary>  
         /// Determines if the file attachment is an image type.  
