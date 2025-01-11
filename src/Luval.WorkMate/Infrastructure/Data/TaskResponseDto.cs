@@ -12,6 +12,7 @@ namespace Luval.WorkMate.Infrastructure.Data
     using System.Text.Json;
     using Microsoft.Graph.Models;
     using Markdig;
+    using System.Text.Json.Nodes;
 
     /// <summary>
     /// Represents a response containing tasks parsed from an AI chat output.
@@ -28,7 +29,22 @@ namespace Luval.WorkMate.Infrastructure.Data
         /// <summary>
         /// The raw Markdown text extracted from the AI chat output.
         /// </summary>
-        public string TaskText { get; set; } = default!;
+        public string ImageText { get; set; } = default!;
+
+        /// <summary>
+        /// The HTML representation of the ImageText property.
+        /// </summary>
+        public string ImageTextHtml => Markdown.ToHtml(ImageText, _pipeline);
+
+        /// <summary>
+        /// The linked resources suggested by the AI bot
+        /// </summary>
+        public string? LinkedResources { get; set; }
+
+        /// <summary>
+        /// The title suggested by the AI bot
+        /// </summary>
+        public string Title { get; set; } = default!;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AITaskResponse"/> class.
@@ -67,16 +83,22 @@ namespace Luval.WorkMate.Infrastructure.Data
                 var matches = codeBlockRegex.Matches(aiOutput);
 
                 // Ensure there are at least two code blocks
-                if (matches.Count < 2)
+                if (matches.Count < 3)
                 {
                     throw new ArgumentException("The AI output must contain at least two code blocks: one for Markdown and one for JSON.");
                 }
 
-                // First code block is Markdown (TaskText)
-                TaskText = matches[0].Value.Replace("```markdown", "").Replace("```", "").Trim();
 
-                // Second code block is JSON (Tasks)
-                var jsonText = matches[1].Value.Replace("```json", "").Replace("```", "").Trim();
+                // first code block is Markdown (ImageText)
+                ImageText = matches[0].Value.Replace("```markdown", "").Replace("```", "").Trim();
+
+                // Second code block is Markdown (Title)
+                var jsonTitle = matches[1].Value.Replace("```json", "").Replace("```", "").Trim();
+                var jsonObject = JsonObject.Parse(jsonTitle);
+                Title = jsonObject.Root["title"].GetValue<string>();
+
+                // Third code block is JSON (Tasks)
+                var jsonText = matches[2].Value.Replace("```json", "").Replace("```", "").Trim();
 
                 Tasks = JsonSerializer.Deserialize<List<AIResponseTodoTaskDto>>(jsonText, new JsonSerializerOptions
                 {
@@ -91,7 +113,7 @@ namespace Luval.WorkMate.Infrastructure.Data
             catch (Exception ex)
             {
                 // Log the error or handle as needed
-                throw new Exception("An error occurred while parsing the AI output.", ex);
+                throw new Exception($"An error occurred while parsing the AI output.:\n{aiOutput}", ex);
             }
         }
 
@@ -131,7 +153,14 @@ namespace Luval.WorkMate.Infrastructure.Data
                         TimeZone = "Central Standard Time",
                     };
                 }
-                records.Add(new TodoTaskRecord(todoTask, task.Category ?? ""));
+                if (!string.IsNullOrEmpty(LinkedResources))
+                {
+                    todoTask.LinkedResources = new List<LinkedResource>() {
+                        new LinkedResource { DisplayName = "Notes", ApplicationName = "OneNote", WebUrl = LinkedResources }
+                    };
+
+                    records.Add(new TodoTaskRecord(todoTask, task.Category ?? ""));
+                }
             }
             return records;
         }
