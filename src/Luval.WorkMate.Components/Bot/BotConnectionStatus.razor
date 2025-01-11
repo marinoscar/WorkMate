@@ -23,7 +23,7 @@
 
     public async Task OnClickNavigate()
     {
-        var c = await Service.SetupConnectionAsync((config, user, url) =>
+        await Service.SetupConnectionAsync((config, user, url) =>
         {
             Navigation.NavigateTo(url);
         }, Navigation.BaseUri);
