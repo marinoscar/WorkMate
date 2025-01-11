@@ -60,11 +60,6 @@ namespace Luval.WorkMate.Core.Services
             return pages.Value;
         }
 
-        public async Task<OnenotePage> CreatePageAsync(string sectionId, OnenotePage page, CancellationToken cancellationToken = default)
-        {
-            return await GraphClient.Me.Onenote.Sections[sectionId].Pages.PostAsync(page, cancellationToken: cancellationToken);
-        }
-
         public async Task<OnenotePage> CreatePageAsync(string sectionId, string title, string htmlContent, List<OnenoteFile>? files, CancellationToken cancellationToken = default)
         {
             var multipartContent = new MultipartFormDataContent();
