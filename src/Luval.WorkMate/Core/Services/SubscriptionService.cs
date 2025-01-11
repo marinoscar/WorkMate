@@ -62,6 +62,7 @@ namespace Luval.WorkMate.Core.Services
                 //check for renewals
                 await RenewSubscriptionsAsync(cancellationToken);
             }
+            Logger.LogInformation("Monitoring {0} subscriptions", Subscriptions.Count);
         }
 
         /// <summary>
