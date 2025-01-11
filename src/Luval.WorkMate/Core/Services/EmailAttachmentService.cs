@@ -29,12 +29,14 @@ namespace Luval.WorkMate.Core.Services
         /// <param name="genAIBotService">The AI bot service for processing chat messages.</param>
         /// <param name="emailService">The email service for retrieving and managing emails.</param>
         /// <param name="todoService">The to-do service for creating and managing tasks.</param>
+        /// <param name="oneNoteService">The One Note service for creating the notes</param>
         /// <exception cref="ArgumentNullException">Thrown when any of the required dependencies are null.</exception>
         public EmailAttachmentService(
             ILogger<EmailAttachmentService> logger,
             GenAIBotService genAIBotService,
             EmailService emailService,
-            TodoService todoService)
+            TodoService todoService,
+            OneNoteService oneNoteService)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _genAIBotService = genAIBotService ?? throw new ArgumentNullException(nameof(genAIBotService));
