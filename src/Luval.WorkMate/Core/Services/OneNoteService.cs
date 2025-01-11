@@ -17,79 +17,165 @@ using Microsoft.AspNetCore.Http;
 
 namespace Luval.WorkMate.Core.Services
 {
+    /// <summary>
+    /// Service class for interacting with OneNote in Microsoft Graph API.
+    /// </summary>
+    /// <param name="authProvider">The instance of <see cref="IAuthenticationProvider"/> for the graph api</param>
+    /// <param name="loggerFactory">The logger factory to create loggers.</param>
     public class OneNoteService(IAuthenticationProvider authProvider, ILoggerFactory loggerFactory) : MicrosoftGraphServiceBase(authProvider, loggerFactory)
     {
-
         private const string imageBlockName = "imageBlock";
         private const string fileBlockName = "fileBlock";
 
+        /// <summary>
+        /// Retrieves a list of OneNote sections.
+        /// </summary>
+        /// <param name="filterExpression">The filter expression to apply to the sections query.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A list of OneNote sections.</returns>
         public async Task<IEnumerable<OnenoteSection>> GetSectionsAsync(string? filterExpression, CancellationToken cancellationToken = default)
         {
-            Action<RequestConfiguration<SectionsRequestBuilder.SectionsRequestBuilderGetQueryParameters>>? config = default!;
-            if (!string.IsNullOrEmpty(filterExpression))
-                config = (request) => request.QueryParameters.Filter = filterExpression;
+            try
+            {
+                Logger.LogInformation("Retrieving OneNote sections with filter: {FilterExpression}", filterExpression);
 
-            var sections = await GraphClient.Me.Onenote.Sections.GetAsync(requestConfiguration: config, cancellationToken: cancellationToken)
-                .ConfigureAwait(false);
+                Action<RequestConfiguration<SectionsRequestBuilder.SectionsRequestBuilderGetQueryParameters>>? config = default!;
+                if (!string.IsNullOrEmpty(filterExpression))
+                    config = (request) => request.QueryParameters.Filter = filterExpression;
 
-            if (sections == null || sections.Value == null || !sections.Value.Any())
-                return [];
+                var sections = await GraphClient.Me.Onenote.Sections.GetAsync(requestConfiguration: config, cancellationToken: cancellationToken)
+                    .ConfigureAwait(false);
 
-            return sections.Value;
+                if (sections == null || sections.Value == null || !sections.Value.Any())
+                {
+                    Logger.LogWarning("No OneNote sections found.");
+                    return Enumerable.Empty<OnenoteSection>();
+                }
+
+                Logger.LogInformation("Retrieved {Count} OneNote sections.", sections.Value.Count);
+                return sections.Value;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error retrieving OneNote sections.");
+                throw;
+            }
         }
 
+        /// <summary>
+        /// Creates a new OneNote section.
+        /// </summary>
+        /// <param name="sectionName">The name of the section to create.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The created OneNote section.</returns>
         public async Task<OnenoteSection> CreateSectionAsync(string sectionName, CancellationToken cancellationToken = default)
         {
-            return await GraphClient.Me.Onenote.Sections.PostAsync(new OnenoteSection
+            try
             {
-                DisplayName = sectionName
-            }, cancellationToken: cancellationToken);
+                Logger.LogInformation("Creating OneNote section with name: {SectionName}", sectionName);
+
+                var section = await GraphClient.Me.Onenote.Sections.PostAsync(new OnenoteSection
+                {
+                    DisplayName = sectionName
+                }, cancellationToken: cancellationToken);
+
+                Logger.LogInformation("Created OneNote section with ID: {SectionId}", section.Id);
+                return section;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error creating OneNote section.");
+                throw;
+            }
         }
 
+        /// <summary>
+        /// Retrieves a list of OneNote pages in a specified section.
+        /// </summary>
+        /// <param name="sectionId">The ID of the section.</param>
+        /// <param name="filterExpression">The filter expression to apply to the pages query.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A list of OneNote pages.</returns>
         public async Task<IEnumerable<OnenotePage>> GetPagesAsync(string sectionId, string? filterExpression, CancellationToken cancellationToken = default)
         {
-            Action<RequestConfiguration<PagesRequestBuilder.PagesRequestBuilderGetQueryParameters>>? config = default!;
-            if (!string.IsNullOrEmpty(filterExpression))
-                config = (request) => request.QueryParameters.Filter = filterExpression;
+            try
+            {
+                Logger.LogInformation("Retrieving OneNote pages for section ID: {SectionId} with filter: {FilterExpression}", sectionId, filterExpression);
 
-            var pages = await GraphClient.Me.Onenote.Sections[sectionId].Pages.GetAsync(requestConfiguration: config, cancellationToken: cancellationToken)
-                .ConfigureAwait(false);
+                Action<RequestConfiguration<PagesRequestBuilder.PagesRequestBuilderGetQueryParameters>>? config = default!;
+                if (!string.IsNullOrEmpty(filterExpression))
+                    config = (request) => request.QueryParameters.Filter = filterExpression;
 
-            if (pages == null || pages.Value == null || !pages.Value.Any())
-                return [];
-            return pages.Value;
+                var pages = await GraphClient.Me.Onenote.Sections[sectionId].Pages.GetAsync(requestConfiguration: config, cancellationToken: cancellationToken)
+                    .ConfigureAwait(false);
+
+                if (pages == null || pages.Value == null || !pages.Value.Any())
+                {
+                    Logger.LogWarning("No OneNote pages found for section ID: {SectionId}.", sectionId);
+                    return Enumerable.Empty<OnenotePage>();
+                }
+
+                Logger.LogInformation("Retrieved {Count} OneNote pages for section ID: {SectionId}.", pages.Value.Count, sectionId);
+                return pages.Value;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error retrieving OneNote pages for section ID: {SectionId}.", sectionId);
+                throw;
+            }
         }
 
+        /// <summary>
+        /// Creates a new OneNote page in a specified section.
+        /// </summary>
+        /// <param name="sectionId">The ID of the section.</param>
+        /// <param name="title">The title of the page.</param>
+        /// <param name="htmlContent">The HTML content of the page.</param>
+        /// <param name="files">The list of files to attach to the page.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The created OneNote page.</returns>
         public async Task<OnenotePage> CreatePageAsync(string sectionId, string title, string htmlContent, List<OnenoteFile>? files, CancellationToken cancellationToken = default)
         {
-            var multipartContent = new MultipartFormDataContent();
-            var contentPage = GetPageHtml(title, htmlContent, files);
-
-            var page = new StringContent(contentPage, Encoding.UTF8, "text/html");
-            multipartContent.Add(page, "Presentation");
-
-            if (files != null && files.Any())
+            try
             {
-                foreach (var file in files)
+                Logger.LogInformation("Creating OneNote page in section ID: {SectionId} with title: {Title}", sectionId, title);
+
+                var multipartContent = new MultipartFormDataContent();
+                var contentPage = GetPageHtml(title, htmlContent, files);
+
+                var page = new StringContent(contentPage, Encoding.UTF8, "text/html");
+                multipartContent.Add(page, "Presentation");
+
+                if (files != null && files.Any())
                 {
-                    var idx = files.IndexOf(file);
-                    var img = new StreamContent(file.GetStream());
-                    img.Headers.ContentType = file.GetMediaType();
-                    multipartContent.Add(img, GetBlockName(file, idx));
+                    foreach (var file in files)
+                    {
+                        var idx = files.IndexOf(file);
+                        var img = new StreamContent(file.GetStream());
+                        img.Headers.ContentType = file.GetMediaType();
+                        multipartContent.Add(img, GetBlockName(file, idx));
+                    }
                 }
+
+                var requestInformation = GraphClient.Me.Onenote.Sections[sectionId].Pages.ToGetRequestInformation();
+                requestInformation.Headers.Add("Content-Type", multipartContent.Headers.ContentType.ToString());
+                requestInformation.HttpMethod = Method.POST;
+                requestInformation.Content = await multipartContent.ReadAsStreamAsync();
+                var errorMapping = new Dictionary<string, ParsableFactory<IParsable>> {
+                        {"4XX", ODataError.CreateFromDiscriminatorValue},
+                        {"5XX", ODataError.CreateFromDiscriminatorValue},
+                    };
+
+                var createdPage = await GraphClient.RequestAdapter.SendAsync<OnenotePage>(requestInformation, OnenotePage.CreateFromDiscriminatorValue, errorMapping);
+
+                Logger.LogInformation("Created OneNote page with ID: {PageId} in section ID: {SectionId}.", createdPage.Id, sectionId);
+                return createdPage;
             }
-
-
-            // create a request information instance and make a request.
-            var requestInformation = GraphClient.Me.Onenote.Sections[sectionId].Pages.ToGetRequestInformation();
-            requestInformation.Headers.Add("Content-Type", multipartContent.Headers.ContentType.ToString());
-            requestInformation.HttpMethod = Method.POST;
-            requestInformation.Content = await multipartContent.ReadAsStreamAsync();
-            var errorMapping = new Dictionary<string, ParsableFactory<IParsable>> {
-              {"4XX", ODataError.CreateFromDiscriminatorValue},
-              {"5XX", ODataError.CreateFromDiscriminatorValue},
-            };
-            return await GraphClient.RequestAdapter.SendAsync<OnenotePage>(requestInformation, OnenotePage.CreateFromDiscriminatorValue, errorMapping);
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error creating OneNote page in section ID: {SectionId}.", sectionId);
+                throw;
+            }
         }
 
         private string GetPageHtml(string title, string content, List<OnenoteFile>? files)
@@ -107,19 +193,19 @@ namespace Luval.WorkMate.Core.Services
                         fileHtml.AppendLine($"<object data-attachment=\"{file.Name}\" data=\"name:{GetBlockName(file, index)}\" type=\"{file.ContentType}\" />");
                 }
             }
-                return $@"
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>{title}</title>
-    <meta name='created' content='{timeStamp}' />
-  </head>
-  <body>
-    {content}
-    {fileHtml}
-  </body>
-</html>
-        ";
+            return $@"
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>{title}</title>
+        <meta name='created' content='{timeStamp}' />
+      </head>
+      <body>
+        {content}
+        {fileHtml}
+      </body>
+    </html>
+            ";
         }
 
         private string GetBlockName(OnenoteFile onenoteFile, int index)
@@ -127,49 +213,49 @@ namespace Luval.WorkMate.Core.Services
             return onenoteFile.IsImage ? $"{imageBlockName}{index}" : $"{fileBlockName}{index}";
         }
 
-
-    /// <summary>
-    /// Represents a file in OneNote.
-    /// </summary>
-    public class OnenoteFile
-    {
         /// <summary>
-        /// Gets or sets the content type of the file
+        /// Represents a file in OneNote.
         /// </summary>
-        public string ContentType { get; set; } = default!;
-
-        /// <summary>
-        /// Gets or sets the name of the file
-        /// </summary>
-        public string Name { get; set; } = default!;
-        /// <summary>
-        /// Gets or sets the content of the file
-        /// </summary>
-        public byte[] Content { get; set; } = default!;
-        /// <summary>
-        /// Indicates if the file is an image
-        /// </summary>
-        public bool IsImage => ContentType.StartsWith("image/");
-
-        public int Width { get; set; } = 300;
-
-        /// <summary>
-        /// Gets the media type of the file
-        /// </summary>
-        /// <returns>The <see cref="MediaTypeHeaderValue"/></returns>
-        public MediaTypeHeaderValue GetMediaType()
+        public class OnenoteFile
         {
-            return new MediaTypeHeaderValue(ContentType);
-        }
+            /// <summary>
+            /// Gets or sets the content type of the file.
+            /// </summary>
+            public string ContentType { get; set; } = default!;
 
-        /// <summary>
-        /// Gets the content as a stream
-        /// </summary>
-        /// <returns>A <see cref="Stream"/> with the content</returns>
-        public Stream GetStream()
-        {
-            return new MemoryStream(Content);
-        }
+            /// <summary>
+            /// Gets or sets the name of the file.
+            /// </summary>
+            public string Name { get; set; } = default!;
 
+            /// <summary>
+            /// Gets or sets the content of the file.
+            /// </summary>
+            public byte[] Content { get; set; } = default!;
+
+            /// <summary>
+            /// Indicates if the file is an image.
+            /// </summary>
+            public bool IsImage => ContentType.StartsWith("image/");
+
+            public int Width { get; set; } = 300;
+
+            /// <summary>
+            /// Gets the media type of the file.
+            /// </summary>
+            /// <returns>The <see cref="MediaTypeHeaderValue"/>.</returns>
+            public MediaTypeHeaderValue GetMediaType()
+            {
+                return new MediaTypeHeaderValue(ContentType);
+            }
+
+            /// <summary>
+            /// Gets the content as a stream.
+            /// </summary>
+            /// <returns>A <see cref="Stream"/> with the content.</returns>
+            public Stream GetStream()
+            {
+                return new MemoryStream(Content);
+            }
+        }
     }
-}
