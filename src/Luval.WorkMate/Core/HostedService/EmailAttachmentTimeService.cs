@@ -29,7 +29,8 @@ namespace Luval.WorkMate.Core.HostedService
                 _service = new EmailAttachmentService(ServiceScope.ServiceProvider.GetRequiredService<ILogger<EmailAttachmentService>>(),
                         ServiceScope.ServiceProvider.GetRequiredService<GenAIBotService>(),
                         ServiceScope.ServiceProvider.GetRequiredService<EmailService>(),
-                        ServiceScope.ServiceProvider.GetRequiredService<TodoService>());
+                        ServiceScope.ServiceProvider.GetRequiredService<TodoService>(),
+                        ServiceScope.ServiceProvider.GetRequiredService<OneNoteService>());
 
             Logger.LogDebug($"Total items in queue { _queue.Count }");
 
