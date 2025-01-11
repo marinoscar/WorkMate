@@ -14,6 +14,8 @@ using Microsoft.Kiota.Abstractions.Serialization;
 using System.Net.Http.Headers;
 using Microsoft.Graph.Drives.Item.Items.Item.Workbook.Worksheets.Item.Charts.Item.Image;
 using Microsoft.AspNetCore.Http;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Luval.WorkMate.Core.Services
 {
@@ -72,7 +74,7 @@ namespace Luval.WorkMate.Core.Services
         /// <returns>A list of OneNote sections.</returns>
         public async Task<IEnumerable<OnenoteSection>> GetSectionsAsync(string? filterExpression, CancellationToken cancellationToken = default)
         {
-            if(string.IsNullOrEmpty(_defaultNotbookId))
+            if (string.IsNullOrEmpty(_defaultNotbookId))
                 await GetDefaultNotebookAsync(cancellationToken);
             return await GetSectionsAsync(_defaultNotbookId, filterExpression, cancellationToken);
         }
@@ -164,7 +166,7 @@ namespace Luval.WorkMate.Core.Services
         /// <returns>The created OneNote section.</returns>
         public async Task<OnenoteSection> CreateSectionAsync(string sectionName, CancellationToken cancellationToken = default)
         {
-            if(string.IsNullOrEmpty(_defaultNotbookId))
+            if (string.IsNullOrEmpty(_defaultNotbookId))
                 await GetDefaultNotebookAsync(cancellationToken);
             return await CreateSectionAsync(_defaultNotbookId, sectionName, cancellationToken);
         }
@@ -230,11 +232,18 @@ namespace Luval.WorkMate.Core.Services
         /// <param name="files">The list of files to attach to the page.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The created OneNote page.</returns>
-        public async Task<OnenotePage> CreatePageAsync(string notebookId, string sectionId, string title, string htmlContent, List<OnenoteFile>? files, CancellationToken cancellationToken = default)
+        public async Task<OnenotePage?> CreatePageAsync(string notebookId, string sectionId, string title, string htmlContent, List<OnenoteFile>? files, CancellationToken cancellationToken = default)
         {
             try
             {
                 Logger.LogInformation("Creating OneNote page in section ID: {SectionId} with title: {Title}", sectionId, title);
+
+                var client = new HttpClient();
+                var requestInfo = new RequestInformation()
+                {
+                    HttpMethod = Method.POST,
+                    URI = new Uri("https://graph.microsoft.com/v1.0/")
+                };
 
                 var multipartContent = new MultipartFormDataContent();
                 var contentPage = GetPageHtml(title, htmlContent, files);
@@ -253,19 +262,32 @@ namespace Luval.WorkMate.Core.Services
                     }
                 }
 
-                var requestInformation = GraphClient.Me.Onenote.Notebooks[notebookId].Sections[sectionId].Pages.ToGetRequestInformation();
-                requestInformation.Headers.Add("Content-Type", multipartContent.Headers.ContentType.ToString());
-                requestInformation.HttpMethod = Method.POST;
-                requestInformation.Content = await multipartContent.ReadAsStreamAsync();
-                var errorMapping = new Dictionary<string, ParsableFactory<IParsable>> {
-                        {"4XX", ODataError.CreateFromDiscriminatorValue},
-                        {"5XX", ODataError.CreateFromDiscriminatorValue},
-                    };
+                await this.AuthProvider.AuthenticateRequestAsync(requestInfo, null, cancellationToken);
 
-                var createdPage = await GraphClient.RequestAdapter.SendAsync<OnenotePage>(requestInformation, OnenotePage.CreateFromDiscriminatorValue, errorMapping);
+                var url = $"https://graph.microsoft.com/v1.0/me/onenote/sections/{sectionId}/pages";
 
-                Logger.LogInformation("Created OneNote page with ID: {PageId} in section ID: {SectionId}.", createdPage.Id, sectionId);
-                return createdPage;
+                var request = new HttpRequestMessage(HttpMethod.Post, url)
+                {
+                    Content = multipartContent
+                };
+
+                request.Headers.Add("Authorization", requestInfo.Headers["Authorization"]);
+
+                var response = await client.SendAsync(request, cancellationToken);
+
+                var responseContent = await response.Content.ReadAsStringAsync();
+                if (!response.IsSuccessStatusCode)
+                {
+                    Logger.LogError($"Error creating OneNote page in Notebook {notebookId} on section {sectionId} with error: \n{responseContent}");
+                    return null;
+                }
+                var pageResult = JsonSerializer.Deserialize<OnenotePage>(responseContent, new JsonSerializerOptions()
+                {
+                    PropertyNameCaseInsensitive = true,
+                    ReferenceHandler = ReferenceHandler.IgnoreCycles
+                });
+                Logger.LogDebug($"Created OneNote Page\n{responseContent}");
+                return pageResult;
             }
             catch (Exception ex)
             {
