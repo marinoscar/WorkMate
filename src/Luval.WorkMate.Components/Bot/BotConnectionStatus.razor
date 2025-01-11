@@ -1,12 +1,11 @@
 ﻿@using Luval.WorkMate.Core.Services
 
-@if (!HasConnection)
-{
-    <FluentButton @onclick="OnClickNavigate">
-        <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size16.StoreMicrosoft())" />
-        Connect with Micrsoft
-    </FluentButton>
-}
+
+<FluentButton @onclick="OnClickNavigate">
+    <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size16.StoreMicrosoft())" />
+    @ButtonCaption
+</FluentButton>
+
 
 @code {
     [Inject]
@@ -20,9 +19,12 @@
 
     public bool HasConnection { get; set; }
 
+    public string ButtonCaption => HasConnection ? "Refresh Connection" : "Create Connection";
+
     public async Task OnClickNavigate()
     {
-        var c = await Service.SetupConnectionAsync((config, user, url) => { 
+        var c = await Service.SetupConnectionAsync((config, user, url) =>
+        {
             Navigation.NavigateTo(url);
         }, Navigation.BaseUri);
     }
