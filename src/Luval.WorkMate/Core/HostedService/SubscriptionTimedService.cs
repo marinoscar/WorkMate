@@ -39,7 +39,14 @@ namespace Luval.WorkMate.Core.HostedService
                         ServiceScope.ServiceProvider.GetRequiredService<ILoggerFactory>());
 
             Logger.LogDebug("Running the subscription service");
-            await _service.RunServiceAsync(cancellationToken);
+            try
+            {
+                await _service.RunServiceAsync(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, ex.Message);
+            }
         }
     }
 }
