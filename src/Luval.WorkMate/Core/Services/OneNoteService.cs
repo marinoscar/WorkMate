@@ -286,7 +286,7 @@ namespace Luval.WorkMate.Core.Services
                     PropertyNameCaseInsensitive = true,
                     ReferenceHandler = ReferenceHandler.IgnoreCycles
                 });
-                Logger.LogDebug($"Created OneNote Page\n{responseContent}");
+                Logger.LogDebug($"Created OneNote Page\n{responseContent}\n\n{contentPage}");
                 return pageResult;
             }
             catch (Exception ex)
