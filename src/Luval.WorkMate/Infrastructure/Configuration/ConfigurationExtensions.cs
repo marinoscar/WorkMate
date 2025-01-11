@@ -27,6 +27,7 @@ namespace Luval.WorkMate.Infrastructure.Configuration
             s.AddScoped<BearingTokenResolver>();
             s.AddScoped<IAuthenticationProvider, WebUserAuthenticationResolver>();
             s.AddScoped<TodoService>();
+            s.AddScoped<OneNoteService>();
             s.AddScoped<WorkMateAgent>();
             s.AddScoped<BotResolver>();
             s.AddScoped<TodoTaskPlugIn>();
