@@ -26,24 +26,26 @@ namespace Luval.WorkMate.Core.Services
     {
         private const string imageBlockName = "imageBlock";
         private const string fileBlockName = "fileBlock";
+        private string? _defaultNotbookId;
 
         /// <summary>
         /// Retrieves a list of OneNote sections.
         /// </summary>
+        /// <param name="notebookId">The ID of the notebook.</param>
         /// <param name="filterExpression">The filter expression to apply to the sections query.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>A list of OneNote sections.</returns>
-        public async Task<IEnumerable<OnenoteSection>> GetSectionsAsync(string? filterExpression, CancellationToken cancellationToken = default)
+        public async Task<IEnumerable<OnenoteSection>> GetSectionsAsync(string notebookId, string? filterExpression, CancellationToken cancellationToken = default)
         {
             try
             {
                 Logger.LogInformation("Retrieving OneNote sections with filter: {FilterExpression}", filterExpression);
 
-                Action<RequestConfiguration<SectionsRequestBuilder.SectionsRequestBuilderGetQueryParameters>>? config = default!;
+                Action<RequestConfiguration<Microsoft.Graph.Me.Onenote.Notebooks.Item.Sections.SectionsRequestBuilder.SectionsRequestBuilderGetQueryParameters>>? config = default!;
                 if (!string.IsNullOrEmpty(filterExpression))
                     config = (request) => request.QueryParameters.Filter = filterExpression;
 
-                var sections = await GraphClient.Me.Onenote.Sections.GetAsync(requestConfiguration: config, cancellationToken: cancellationToken)
+                var sections = await GraphClient.Me.Onenote.Notebooks[notebookId].Sections.GetAsync(requestConfiguration: config, cancellationToken: cancellationToken)
                     .ConfigureAwait(false);
 
                 if (sections == null || sections.Value == null || !sections.Value.Any())
@@ -62,19 +64,71 @@ namespace Luval.WorkMate.Core.Services
             }
         }
 
+
+        ///<summary>
+        /// Retrieves the default OneNote notebook.
+        /// </summary>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>The default OneNote notebook.</returns>
+        public async Task<Notebook> GetDefaultNotebookAsync(CancellationToken cancellationToken = default)
+        {
+            var exp = "isDefault eq true";
+            var notebooks = await GetNotebooksAsync(exp, cancellationToken);
+            var defaultNotebook = notebooks.FirstOrDefault();
+            _defaultNotbookId = defaultNotebook?.Id;
+            return defaultNotebook;
+        }
+
+        ///<summary>
+        /// Retrieves a list of OneNote notebooks.
+        /// </summary>
+        /// <param name="filterExpression">The filter expression to apply to the notebooks query.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>A list of OneNote notebooks.</returns>
+        public async Task<IEnumerable<Notebook>> GetNotebooksAsync(string? filterExpression, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                Logger.LogInformation("Retrieving OneNote notebooks with filter: {FilterExpression}", filterExpression);
+
+                Action<RequestConfiguration<Microsoft.Graph.Me.Onenote.Notebooks.NotebooksRequestBuilder.NotebooksRequestBuilderGetQueryParameters>>? config = default!;
+
+                if (!string.IsNullOrEmpty(filterExpression))
+                    config = (request) => request.QueryParameters.Filter = filterExpression;
+
+                var notebooks = await GraphClient.Me.Onenote.Notebooks.GetAsync(requestConfiguration: config, cancellationToken: cancellationToken)
+                    .ConfigureAwait(false);
+
+                if (notebooks == null || notebooks.Value == null || !notebooks.Value.Any())
+                {
+                    Logger.LogWarning("No OneNote notebooks found.");
+                    return Enumerable.Empty<Notebook>();
+                }
+
+                Logger.LogInformation("Retrieved {Count} OneNote notebooks.", notebooks.Value.Count);
+                return notebooks.Value;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error retrieving OneNote notebooks.");
+                throw;
+            }
+        }
+
         /// <summary>
         /// Creates a new OneNote section.
         /// </summary>
+        /// <param name="notebookId">The ID of the notebook.</param>
         /// <param name="sectionName">The name of the section to create.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The created OneNote section.</returns>
-        public async Task<OnenoteSection> CreateSectionAsync(string sectionName, CancellationToken cancellationToken = default)
+        public async Task<OnenoteSection> CreateSectionAsync(string notebookId, string sectionName, CancellationToken cancellationToken = default)
         {
             try
             {
                 Logger.LogInformation("Creating OneNote section with name: {SectionName}", sectionName);
 
-                var section = await GraphClient.Me.Onenote.Sections.PostAsync(new OnenoteSection
+                var section = await GraphClient.Me.Onenote.Notebooks[notebookId].Sections.PostAsync(new OnenoteSection
                 {
                     DisplayName = sectionName
                 }, cancellationToken: cancellationToken);
@@ -92,21 +146,22 @@ namespace Luval.WorkMate.Core.Services
         /// <summary>
         /// Retrieves a list of OneNote pages in a specified section.
         /// </summary>
+        /// <param name="notebookId">The ID of the notebook.</param>
         /// <param name="sectionId">The ID of the section.</param>
         /// <param name="filterExpression">The filter expression to apply to the pages query.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>A list of OneNote pages.</returns>
-        public async Task<IEnumerable<OnenotePage>> GetPagesAsync(string sectionId, string? filterExpression, CancellationToken cancellationToken = default)
+        public async Task<IEnumerable<OnenotePage>> GetPagesAsync(string notebookId, string sectionId, string? filterExpression, CancellationToken cancellationToken = default)
         {
             try
             {
                 Logger.LogInformation("Retrieving OneNote pages for section ID: {SectionId} with filter: {FilterExpression}", sectionId, filterExpression);
 
-                Action<RequestConfiguration<PagesRequestBuilder.PagesRequestBuilderGetQueryParameters>>? config = default!;
+                Action<RequestConfiguration<Microsoft.Graph.Me.Onenote.Notebooks.Item.Sections.Item.Pages.PagesRequestBuilder.PagesRequestBuilderGetQueryParameters>>? config = default!;
                 if (!string.IsNullOrEmpty(filterExpression))
                     config = (request) => request.QueryParameters.Filter = filterExpression;
 
-                var pages = await GraphClient.Me.Onenote.Sections[sectionId].Pages.GetAsync(requestConfiguration: config, cancellationToken: cancellationToken)
+                var pages = await GraphClient.Me.Onenote.Notebooks[notebookId].Sections[sectionId].Pages.GetAsync(requestConfiguration: config, cancellationToken: cancellationToken)
                     .ConfigureAwait(false);
 
                 if (pages == null || pages.Value == null || !pages.Value.Any())
@@ -128,13 +183,14 @@ namespace Luval.WorkMate.Core.Services
         /// <summary>
         /// Creates a new OneNote page in a specified section.
         /// </summary>
+        /// <param name="notebookId">The ID of the notebook.</param>
         /// <param name="sectionId">The ID of the section.</param>
         /// <param name="title">The title of the page.</param>
         /// <param name="htmlContent">The HTML content of the page.</param>
         /// <param name="files">The list of files to attach to the page.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>The created OneNote page.</returns>
-        public async Task<OnenotePage> CreatePageAsync(string sectionId, string title, string htmlContent, List<OnenoteFile>? files, CancellationToken cancellationToken = default)
+        public async Task<OnenotePage> CreatePageAsync(string notebookId, string sectionId, string title, string htmlContent, List<OnenoteFile>? files, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -157,7 +213,7 @@ namespace Luval.WorkMate.Core.Services
                     }
                 }
 
-                var requestInformation = GraphClient.Me.Onenote.Sections[sectionId].Pages.ToGetRequestInformation();
+                var requestInformation = GraphClient.Me.Onenote.Notebooks[notebookId].Sections[sectionId].Pages.ToGetRequestInformation();
                 requestInformation.Headers.Add("Content-Type", multipartContent.Headers.ContentType.ToString());
                 requestInformation.HttpMethod = Method.POST;
                 requestInformation.Content = await multipartContent.ReadAsStreamAsync();
