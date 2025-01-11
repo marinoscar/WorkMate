@@ -40,43 +40,47 @@ namespace Luval.WorkMate.Core.Services
         /// <summary>
         /// Sets up the connection asynchronously.
         /// </summary>
-        /// <param name="refreshRequired">Action to be taken when a refresh is required.</param>
+        /// <param name="getNewToken">Action to be taken when a refresh is required.</param>
         /// <param name="baseUrl">The url of the application</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>The established AppConnection or null if a refresh is required.</returns>
         /// <exception cref="ArgumentNullException">Thrown when the refreshRequired parameter is null.</exception>
         /// <exception cref="Exception">Thrown when an error occurs while setting up the connection.</exception>
-        public async Task<AppConnection?> SetupConnectionAsync(Action<OAuthConnectionConfig, AppUser, string> refreshRequired, string baseUrl, CancellationToken cancellationToken = default)
+        public async Task SetupConnectionAsync(Action<OAuthConnectionConfig, AppUser, string> getNewToken, string baseUrl, CancellationToken cancellationToken = default)
         {
-            if (refreshRequired == null) throw new ArgumentNullException(nameof(refreshRequired));
+            if (getNewToken == null) throw new ArgumentNullException(nameof(getNewToken));
 
             try
             {
                 var user = _userResolver.GetUser();
                 var config = _oauthConnectionManager.GetConfiguration("Microsoft");
+
                 var connection = await _appConnectionService.GetConnectionAsync("Microsoft", _userResolver.GetUserEmail(), cancellationToken);
                 var connectionUrl = _appConnectionService.CreateAuthorizationConsentUrl(config, baseUrl);
-                if (connection == null) // need to create one
-                {
-                    _logger.LogInformation("Connection not found. Refresh required.");
-                    refreshRequired(config, user, connectionUrl);
-                    return null;
-                }
 
-                if (connection.HasExpired && string.IsNullOrEmpty(connection.RefreshToken))
-                {
-                    _logger.LogInformation("Connection has expired and no refresh token is available. Refresh required.");
-                    refreshRequired(config, user, connectionUrl);
-                    return null;
-                }
+                getNewToken(config, user, connectionUrl);
 
-                if (connection.HasExpired)
-                {
-                    _logger.LogInformation("Connection has expired. Refreshing token.");
-                    connection = await _appConnectionService.RefreshTokenAsync(config, connection, cancellationToken);
-                }
+                //if (connection == null) // need to create one
+                //{
+                //    _logger.LogInformation("Connection not found. Refresh required.");
+                //    getNewToken(config, user, connectionUrl);
+                //    return null;
+                //}
 
-                return connection;
+                //if (connection.HasExpired && string.IsNullOrEmpty(connection.RefreshToken))
+                //{
+                //    _logger.LogInformation("Connection has expired and no refresh token is available. Refresh required.");
+                //    getNewToken(config, user, connectionUrl);
+                //    return null;
+                //}
+
+                //if (connection.HasExpired)
+                //{
+                //    _logger.LogInformation("Connection has expired. Refreshing token.");
+                //    connection = await _appConnectionService.RefreshTokenAsync(config, connection, cancellationToken);
+                //}
+
+                //return connection;
             }
             catch (Exception ex)
             {
