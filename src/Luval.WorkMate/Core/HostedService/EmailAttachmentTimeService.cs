@@ -60,8 +60,17 @@ namespace Luval.WorkMate.Core.HostedService
         /// <returns>A task that represents the asynchronous operation.</returns>
         public async Task RunProcessAsync(IServiceProvider serviceProvider, int threadNo, CancellationToken cancellationToken)
         {
-            if (!_queue.TryDequeue(out var changeNotification)) return;
-            if (changeNotification == null || string.IsNullOrEmpty(changeNotification.Resource)) return;
+            Logger.LogDebug($"Starting Thread: {threadNo}");
+            if (!_queue.TryDequeue(out var changeNotification))
+            {
+                Logger.LogDebug($"Thread: {threadNo} no item in queue");
+                return;
+            }
+            if (changeNotification == null || string.IsNullOrEmpty(changeNotification.Resource))
+            {
+                Logger.LogDebug($"Thread: {threadNo} item in queue is empty");
+                return;
+            }
 
             using (var scope = serviceProvider.CreateScope())
             {
@@ -73,7 +82,7 @@ namespace Luval.WorkMate.Core.HostedService
 
                 var id = changeNotification.Resource.GetResourceId();
 
-                Logger.LogInformation($"Thread: {threadNo} Processing email attachment with Id: {id}");
+                Logger.LogDebug($"Thread: {threadNo} Processing email attachment with Id: {id}");
 
                 await service.ProcessEmailAttachmentAsync(id, cancellationToken);
             }
