@@ -100,10 +100,23 @@ namespace Luval.WorkMate.Infrastructure.Data
                 // Third code block is JSON (Tasks)
                 var jsonText = matches[2].Value.Replace("```json", "").Replace("```", "").Trim();
 
-                Tasks = JsonSerializer.Deserialize<List<AIResponseTodoTaskDto>>(jsonText, new JsonSerializerOptions
+                var taskJson = JsonDocument.Parse(jsonText);
+                if(taskJson.RootElement.ValueKind == JsonValueKind.Array)
                 {
-                    PropertyNameCaseInsensitive = true
-                });
+                    Tasks = JsonSerializer.Deserialize<List<AIResponseTodoTaskDto>>(jsonText, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+                }
+                else
+                {
+                    var singleTask = JsonSerializer.Deserialize<AIResponseTodoTaskDto>(jsonText, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+                    Tasks = [singleTask];
+                }
+
 
                 if (Tasks == null)
                 {
