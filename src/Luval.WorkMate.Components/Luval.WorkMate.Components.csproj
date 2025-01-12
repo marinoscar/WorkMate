@@ -7,7 +7,7 @@
     <ApplicationIcon>logo_icon.ico</ApplicationIcon>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <Title>Work Mate Components</Title>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
     <Authors>Oscar Marin</Authors>
     <Copyright>Oscar Marin</Copyright>
     <PackageProjectUrl>https://github.com/marinoscar/WorkMate</PackageProjectUrl>
