@@ -8,6 +8,7 @@ using Luval.GenAIBotMate.Infrastructure.Data;
 using Luval.WorkMate.Infrastructure.Configuration;
 using Luval.WorkMate.Infrastructure.Data;
 using Luval.WorkMate.UI.Components;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Microsoft.IdentityModel.Tokens;
 
@@ -51,7 +52,8 @@ namespace Luval.WorkMate.UI
                     //returns a local instance of Sqlite
                     //replace this with your own implementation of Postgres, MySql, SqlServer, etc
                     return new SqliteAuthMateContext(connString);
-                });
+                }
+             );
 
             //Add the AuthMate Google OAuth provider
             builder.Services.AddAuthMateGoogleAuth(new GoogleOAuthConfiguration()
