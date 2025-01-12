@@ -15,33 +15,53 @@ using System.Threading.Tasks;
 
 namespace Luval.WorkMate.Core.HostedService
 {
+    /// <summary>
+    /// A hosted service that processes email attachments at regular intervals.
+    /// </summary>
     public class EmailAttachmentTimeService : TimedHostedService
     {
         private readonly UniqueConcurrentQueue<string, ChangeNotification> _queue;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EmailAttachmentTimeService"/> class.
+        /// </summary>
+        /// <param name="serviceProvider">The service provider instance.</param>
         public EmailAttachmentTimeService(IServiceProvider serviceProvider) : base(serviceProvider)
         {
             _queue = serviceProvider.GetRequiredService<UniqueConcurrentQueue<string, ChangeNotification>>();
         }
+
+        /// <summary>
+        /// Executes the work to be done at each interval.
+        /// </summary>
+        /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
         public override async Task DoWorkAsync(CancellationToken cancellationToken)
         {
             Logger.LogDebug($"Total items in queue {_queue.Count}");
             var taskList = new List<Task>()
-            {
-                RunProcessAsync(ServiceProvider, 1, cancellationToken),
-                RunProcessAsync(ServiceProvider, 2, cancellationToken),
-                RunProcessAsync(ServiceProvider, 3, cancellationToken),
-                RunProcessAsync(ServiceProvider, 4, cancellationToken),
-                RunProcessAsync(ServiceProvider, 5, cancellationToken),
-            };
+                {
+                    RunProcessAsync(ServiceProvider, 1, cancellationToken),
+                    RunProcessAsync(ServiceProvider, 2, cancellationToken),
+                    RunProcessAsync(ServiceProvider, 3, cancellationToken),
+                    RunProcessAsync(ServiceProvider, 4, cancellationToken),
+                    RunProcessAsync(ServiceProvider, 5, cancellationToken),
+                };
 
             await Task.WhenAll(taskList);
         }
 
+        /// <summary>
+        /// Processes a single email attachment.
+        /// </summary>
+        /// <param name="serviceProvider">The service provider instance.</param>
+        /// <param name="threadNo">The thread number for logging purposes.</param>
+        /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
         public async Task RunProcessAsync(IServiceProvider serviceProvider, int threadNo, CancellationToken cancellationToken)
         {
             if (!_queue.TryDequeue(out var changeNotification)) return;
-            if(changeNotification == null || string.IsNullOrEmpty(changeNotification.Resource)) return;
+            if (changeNotification == null || string.IsNullOrEmpty(changeNotification.Resource)) return;
 
             using (var scope = serviceProvider.CreateScope())
             {
@@ -58,6 +78,5 @@ namespace Luval.WorkMate.Core.HostedService
                 await service.ProcessEmailAttachmentAsync(id, cancellationToken);
             }
         }
-
     }
 }
