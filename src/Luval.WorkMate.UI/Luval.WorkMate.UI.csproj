@@ -1,18 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
-
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>513ecb7d-44e3-41d6-93ea-3e75b6c83f9e</UserSecretsId>
+    <Version>1.0.1</Version>
   </PropertyGroup>
-
   <ItemGroup>
     <None Remove="app.db" />
     <None Remove="app.db-shm" />
     <None Remove="app.db-wal" />
   </ItemGroup>
-
   <ItemGroup>
     <PackageReference Include="Luval.AuthMate.Blazor" Version="1.1.11" />
     <PackageReference Include="Luval.AuthMate.Sqlite" Version="1.1.11" />
@@ -21,7 +19,6 @@
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.*-*" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.*-*" />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Luval.WorkMate.Components\Luval.WorkMate.Components.csproj" />
     <ProjectReference Include="..\Luval.WorkMate\Luval.WorkMate.csproj" />
