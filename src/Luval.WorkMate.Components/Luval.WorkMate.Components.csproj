@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
-
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
@@ -8,7 +7,7 @@
     <ApplicationIcon>logo_icon.ico</ApplicationIcon>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <Title>Work Mate Components</Title>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <Authors>Oscar Marin</Authors>
     <Copyright>Oscar Marin</Copyright>
     <PackageProjectUrl>https://github.com/marinoscar/WorkMate</PackageProjectUrl>
@@ -16,16 +15,14 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/marinoscar/WorkMate</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
-
   <ItemGroup>
     <Content Include="logo_icon.ico" />
   </ItemGroup>
-
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
-
   <ItemGroup>
     <None Include="..\..\media\logo-full-nobg.png">
       <Pack>True</Pack>
@@ -36,7 +33,6 @@
       <PackagePath>\</PackagePath>
     </None>
   </ItemGroup>
-
   <ItemGroup>
     <PackageReference Include="Luval.AuthMate" Version="1.1.11" />
     <PackageReference Include="Luval.AuthMate.Blazor" Version="1.1.11" />
@@ -45,11 +41,7 @@
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.11.0" />
     <PackageReference Include="Microsoft.SemanticKernel.Connectors.OpenAI" Version="1.32.0" />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\Luval.WorkMate\Luval.WorkMate.csproj" />
   </ItemGroup>
-
-
-
 </Project>
