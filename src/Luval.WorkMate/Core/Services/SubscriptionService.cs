@@ -95,6 +95,7 @@ namespace Luval.WorkMate.Core.Services
                     ExpirationDateTime = DateTimeOffset.UtcNow.AddMinutes(sub.DurationInMinutes),
                     ClientState = Guid.NewGuid().ToString()
                 };
+                Logger.LogInformation($"Creating subscription for {sub.Resource} with expiration {subscription.ExpirationDateTime} with endpoint {subscription.NotificationUrl}");
                 await CreateSubscriptionAsync(subscription, cancellationToken);
             }
         }
